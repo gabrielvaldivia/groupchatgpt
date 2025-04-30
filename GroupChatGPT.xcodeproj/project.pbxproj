@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4039AD692DBB10590032C01D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4039AD682DBB10590032C01D /* FirebaseAuth */; };
-		4039AD6B2DBB10590032C01D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 4039AD6A2DBB10590032C01D /* FirebaseFirestore */; };
+		405DB6562DC1BB17003CFE1D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 405DB6552DC1BB17003CFE1D /* FirebaseAuth */; };
+		405DB6582DC1BB17003CFE1D /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 405DB6572DC1BB17003CFE1D /* FirebaseCore */; };
+		405DB65A2DC1BB17003CFE1D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 405DB6592DC1BB17003CFE1D /* FirebaseFirestore */; };
+		405DB65D2DC1BB22003CFE1D /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = 405DB65C2DC1BB22003CFE1D /* OpenAI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,8 +59,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4039AD692DBB10590032C01D /* FirebaseAuth in Frameworks */,
-				4039AD6B2DBB10590032C01D /* FirebaseFirestore in Frameworks */,
+				405DB6582DC1BB17003CFE1D /* FirebaseCore in Frameworks */,
+				405DB6562DC1BB17003CFE1D /* FirebaseAuth in Frameworks */,
+				405DB65D2DC1BB22003CFE1D /* OpenAI in Frameworks */,
+				405DB65A2DC1BB17003CFE1D /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,8 +123,10 @@
 			);
 			name = GroupChatGPT;
 			packageProductDependencies = (
-				4039AD682DBB10590032C01D /* FirebaseAuth */,
-				4039AD6A2DBB10590032C01D /* FirebaseFirestore */,
+				405DB6552DC1BB17003CFE1D /* FirebaseAuth */,
+				405DB6572DC1BB17003CFE1D /* FirebaseCore */,
+				405DB6592DC1BB17003CFE1D /* FirebaseFirestore */,
+				405DB65C2DC1BB22003CFE1D /* OpenAI */,
 			);
 			productName = GroupChatGPT;
 			productReference = 4039AD312DBB0E1F0032C01D /* GroupChatGPT.app */;
@@ -205,7 +211,8 @@
 			mainGroup = 4039AD282DBB0E1F0032C01D;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4039AD672DBB10590032C01D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				405DB6542DC1BB17003CFE1D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				405DB65B2DC1BB22003CFE1D /* XCRemoteSwiftPackageReference "OpenAI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4039AD322DBB0E1F0032C01D /* Products */;
@@ -572,7 +579,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		4039AD672DBB10590032C01D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+		405DB6542DC1BB17003CFE1D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
 			requirement = {
@@ -580,18 +587,36 @@
 				minimumVersion = 11.12.0;
 			};
 		};
+		405DB65B2DC1BB22003CFE1D /* XCRemoteSwiftPackageReference "OpenAI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/MacPaw/OpenAI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.4.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		4039AD682DBB10590032C01D /* FirebaseAuth */ = {
+		405DB6552DC1BB17003CFE1D /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4039AD672DBB10590032C01D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			package = 405DB6542DC1BB17003CFE1D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
 		};
-		4039AD6A2DBB10590032C01D /* FirebaseFirestore */ = {
+		405DB6572DC1BB17003CFE1D /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4039AD672DBB10590032C01D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			package = 405DB6542DC1BB17003CFE1D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		405DB6592DC1BB17003CFE1D /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 405DB6542DC1BB17003CFE1D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		405DB65C2DC1BB22003CFE1D /* OpenAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 405DB65B2DC1BB22003CFE1D /* XCRemoteSwiftPackageReference "OpenAI" */;
+			productName = OpenAI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
