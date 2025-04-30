@@ -122,9 +122,9 @@ class ChatViewModel: ObservableObject {
             // Convert messages to chat format and add to conversation
             for message in previousMessages {
                 if message.isFromGPT {
-                    await openAIService.addToHistory(role: "assistant", content: message.text)
+                    openAIService.addToHistory(role: "assistant", content: message.text)
                 } else {
-                    await openAIService.addToHistory(role: "user", content: message.text)
+                    openAIService.addToHistory(role: "user", content: message.text)
                 }
             }
 
