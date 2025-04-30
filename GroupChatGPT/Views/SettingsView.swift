@@ -10,11 +10,10 @@ struct SettingsView: View {
         NavigationView {
             Form {
                 Section(header: Text("OPENAI API KEY")) {
-                    TextEditor(text: $viewModel.apiKey)
-                        .frame(height: 100)
+                    TextField("Enter API Key", text: $viewModel.apiKey)
                         .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .font(.system(.body, design: .monospaced))
+                        .textCase(.none)
+                        .monospaced()
 
                     if !viewModel.apiKey.isEmpty {
                         Button(role: .destructive, action: viewModel.clearAPIKey) {
