@@ -42,9 +42,14 @@ public struct User: Identifiable, Codable {
 
         self.email = try container.decodeIfPresent(String.self, forKey: .email)
 
-        // Handle URL decoding
+        // Handle URL decoding (support both regular URLs and data URLs)
         if let urlString = try container.decodeIfPresent(String.self, forKey: .profileImageURL) {
-            self.profileImageURL = URL(string: urlString)
+            if urlString.hasPrefix("data:") {
+                // For data URLs, create a temporary file URL
+                self.profileImageURL = URL(string: urlString)
+            } else {
+                self.profileImageURL = URL(string: urlString)
+            }
         } else {
             self.profileImageURL = nil
         }

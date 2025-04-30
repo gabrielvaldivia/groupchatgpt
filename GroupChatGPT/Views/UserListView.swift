@@ -8,6 +8,7 @@ struct UserListView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage: String?
+    @State private var showingProfile = false
 
     var body: some View {
         Group {
@@ -28,9 +29,20 @@ struct UserListView: View {
         }
         .navigationTitle("Chats")
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    showingProfile = true
+                } label: {
+                    Image(systemName: "person.circle")
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 signOutButton
             }
+        }
+        .sheet(isPresented: $showingProfile) {
+            ProfileView()
+                .environmentObject(authService)
         }
         .overlay {
             if isLoading {
@@ -121,6 +133,7 @@ struct UserListView: View {
 
 struct UserRow: View {
     let user: User
+    @State private var uiImage: UIImage?
 
     var body: some View {
         HStack {
@@ -133,19 +146,41 @@ struct UserRow: View {
     private var userAvatar: some View {
         Group {
             if let url = user.profileImageURL {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    defaultAvatar
+                if url.absoluteString.hasPrefix("data:") {
+                    if let image = loadBase64Image(from: url.absoluteString) {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
+                    } else {
+                        defaultAvatar
+                    }
+                } else {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        defaultAvatar
+                    }
+                    .frame(width: 40, height: 40)
+                    .clipShape(Circle())
                 }
-                .frame(width: 40, height: 40)
-                .clipShape(Circle())
             } else {
                 defaultAvatar
             }
         }
+    }
+
+    private func loadBase64Image(from dataURL: String) -> Image? {
+        guard let base64String = dataURL.components(separatedBy: ",").last,
+            let imageData = Data(base64Encoded: base64String),
+            let uiImage = UIImage(data: imageData)
+        else {
+            return nil
+        }
+        return Image(uiImage: uiImage)
     }
 
     private var defaultAvatar: some View {

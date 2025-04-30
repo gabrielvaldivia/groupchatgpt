@@ -15,9 +15,48 @@ public class AuthenticationService: NSObject, ObservableObject {
 
     private var signInContinuation: CheckedContinuation<Void, Error>?
     private var isSigningIn = false
+    private var userListener: ListenerRegistration?
 
     private override init() {
         super.init()
+        setupUserListener()
+    }
+
+    private func setupUserListener() {
+        Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            guard let self = self else { return }
+
+            if let userId = user?.uid {
+                self.userListener?.remove()
+                self.userListener = self.db.collection("users").document(userId)
+                    .addSnapshotListener { [weak self] snapshot, error in
+                        guard let self = self else { return }
+
+                        if let error = error {
+                            self.error = error
+                            return
+                        }
+
+                        if let snapshot = snapshot, snapshot.exists {
+                            do {
+                                let user = try snapshot.data(as: User.self)
+                                self.currentUser = user
+                                self.isAuthenticated = true
+                            } catch {
+                                self.error = error
+                            }
+                        } else {
+                            self.currentUser = nil
+                            self.isAuthenticated = false
+                        }
+                    }
+            } else {
+                self.userListener?.remove()
+                self.userListener = nil
+                self.currentUser = nil
+                self.isAuthenticated = false
+            }
+        }
     }
 
     public func handleSignInWithAppleRequest() async throws {
@@ -41,11 +80,17 @@ public class AuthenticationService: NSObject, ObservableObject {
     public func signOut() {
         do {
             try Auth.auth().signOut()
+            userListener?.remove()
+            userListener = nil
             currentUser = nil
             isAuthenticated = false
         } catch {
             print("Error signing out: \(error.localizedDescription)")
         }
+    }
+
+    deinit {
+        userListener?.remove()
     }
 }
 
