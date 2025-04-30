@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatView: View {
     @StateObject private var viewModel = ChatViewModel()
     @FocusState private var isFocused: Bool
+    @State private var showingSettings = false
 
     var body: some View {
         VStack {
@@ -19,10 +20,10 @@ struct ChatView: View {
                     }
                     .padding()
                 }
-                .onChange(of: viewModel.messages) { oldValue, newValue in
-                    if let last = newValue.last {
+                .onChange(of: viewModel.messages.count) { _ in
+                    if let lastMessage = viewModel.messages.last {
                         withAnimation {
-                            proxy.scrollTo(last.messageId, anchor: .bottom)
+                            proxy.scrollTo(lastMessage.messageId, anchor: .bottom)
                         }
                     }
                 }
@@ -70,6 +71,19 @@ struct ChatView: View {
             )
         }
         .navigationTitle("Group Chat")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gear")
+                }
+            }
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
+        }
     }
 }
 

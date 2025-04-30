@@ -12,7 +12,7 @@ class ChatViewModel: ObservableObject {
     private let openAIService: OpenAIService
 
     init() {
-        self.openAIService = OpenAIService(apiKey: Config.openAIKey)
+        self.openAIService = OpenAIService(apiKey: Settings.apiKey)
         signInAnonymously()
         setupMessagesListener()
     }
@@ -116,6 +116,18 @@ class ChatViewModel: ObservableObject {
 
     private func handleChatGPTMention(originalMessage: Message) async {
         do {
+            // Get the last few messages for context (up to 10 messages)
+            let previousMessages = messages.suffix(10)
+
+            // Convert messages to chat format and add to conversation
+            for message in previousMessages {
+                if message.isFromGPT {
+                    await openAIService.addToHistory(role: "assistant", content: message.text)
+                } else {
+                    await openAIService.addToHistory(role: "user", content: message.text)
+                }
+            }
+
             let userMessage = originalMessage.text
                 .replacingOccurrences(of: "@chatgpt", with: "", options: [.caseInsensitive])
                 .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -193,6 +205,26 @@ class ChatViewModel: ObservableObject {
             } catch {
                 print("Failed to save error message: \(error.localizedDescription)")
             }
+        }
+    }
+
+    func clearAllMessages() async {
+        print("Clearing all messages...")
+        do {
+            // Get all messages
+            let snapshot = try await db.collection("messages").getDocuments()
+
+            // Delete each message
+            for document in snapshot.documents {
+                try await document.reference.delete()
+            }
+
+            // Clear OpenAI conversation history
+            openAIService.clearConversationHistory()
+
+            print("Successfully cleared all messages")
+        } catch {
+            print("Error clearing messages: \(error)")
         }
     }
 }

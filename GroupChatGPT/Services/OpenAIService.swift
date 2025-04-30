@@ -13,6 +13,8 @@ class OpenAIService {
     private let apiKey: String
     private let baseURL = "https://api.openai.com/v1/chat/completions"
     private let session: URLSession
+    private var conversationHistory: [[String: String]] = []
+    private let maxHistoryLength = 20  // Maximum number of messages to keep in history
 
     init(apiKey: String) {
         self.apiKey = apiKey
@@ -24,10 +26,27 @@ class OpenAIService {
         config.httpMaximumConnectionsPerHost = 1
 
         self.session = URLSession(configuration: config)
+
+        // Add initial system message
+        conversationHistory.append([
+            "role": "system",
+            "content":
+                "You are a helpful assistant in a group chat. Keep your responses concise and conversational. You should remember context from previous messages in the conversation.",
+        ])
     }
 
     deinit {
         session.invalidateAndCancel()
+    }
+
+    func addToHistory(role: String, content: String) {
+        conversationHistory.append(["role": role, "content": content])
+
+        // Keep history within size limit, but always preserve system message
+        if conversationHistory.count > maxHistoryLength {
+            let systemMessage = conversationHistory[0]
+            conversationHistory = [systemMessage] + conversationHistory.suffix(maxHistoryLength - 1)
+        }
     }
 
     func generateResponse(to message: String) async throws -> String {
@@ -41,16 +60,12 @@ class OpenAIService {
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.cachePolicy = .reloadIgnoringLocalCacheData
 
+        // Add the new user message to history
+        addToHistory(role: "user", content: message)
+
         let payload: [String: Any] = [
             "model": "gpt-3.5-turbo",
-            "messages": [
-                [
-                    "role": "system",
-                    "content":
-                        "You are a helpful assistant in a group chat. Keep your responses concise and conversational.",
-                ],
-                ["role": "user", "content": message],
-            ],
+            "messages": conversationHistory,
             "temperature": 0.7,
             "max_tokens": 150,
         ]
@@ -80,6 +95,9 @@ class OpenAIService {
                 throw OpenAIError.decodingError
             }
 
+            // Add the assistant's response to history
+            addToHistory(role: "assistant", content: content)
+
             return content.trimmingCharacters(in: .whitespacesAndNewlines)
 
         } catch {
@@ -98,6 +116,17 @@ class OpenAIService {
             }
             throw OpenAIError.networkError(error)
         }
+    }
+
+    // Add method to clear conversation history
+    func clearConversationHistory() {
+        conversationHistory = [
+            [
+                "role": "system",
+                "content":
+                    "You are a helpful assistant in a group chat. Keep your responses concise and conversational. You should remember context from previous messages in the conversation.",
+            ]
+        ]
     }
 }
 
