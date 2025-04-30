@@ -10,19 +10,31 @@ struct UserListView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        NavigationView {
-            ZStack {
+        Group {
+            if users.isEmpty && !isLoading {
+                VStack(spacing: 16) {
+                    Text("No Users Found")
+                        .font(.headline)
+                    Text("There are no other users to chat with yet.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Button("Refresh") {
+                        loadUsers()
+                    }
+                }
+            } else {
                 userList
-
-                if isLoading {
-                    loadingOverlay
-                }
             }
-            .navigationTitle("Chats")
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    signOutButton
-                }
+        }
+        .navigationTitle("Chats")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                signOutButton
+            }
+        }
+        .overlay {
+            if isLoading {
+                loadingOverlay
             }
         }
         .alert(
@@ -53,6 +65,9 @@ struct UserListView: View {
                 }
             }
         }
+        .refreshable {
+            await refreshUsers()
+        }
     }
 
     private var loadingOverlay: some View {
@@ -70,15 +85,36 @@ struct UserListView: View {
 
     private func loadUsers() {
         isLoading = true
-        // TODO: Implement user fetching from your backend
-        // For now, let's use some sample data
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            users = [
-                User(id: "1", name: "Alice Smith"),
-                User(id: "2", name: "Bob Johnson"),
-                User(id: "3", name: "Carol Williams"),
-            ]
-            isLoading = false
+
+        Task {
+            await refreshUsers()
+        }
+    }
+
+    private func refreshUsers() async {
+        do {
+            let db = Firestore.firestore()
+            let snapshot = try await db.collection("users").getDocuments()
+
+            let fetchedUsers = snapshot.documents.compactMap { document -> User? in
+                do {
+                    return try document.data(as: User.self)
+                } catch {
+                    print("Error decoding user document: \(error)")
+                    return nil
+                }
+            }
+
+            await MainActor.run {
+                self.users = fetchedUsers
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.showError = true
+                self.isLoading = false
+            }
         }
     }
 }

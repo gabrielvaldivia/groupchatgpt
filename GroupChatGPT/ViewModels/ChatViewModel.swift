@@ -45,7 +45,7 @@ class ChatViewModel: ObservableObject {
         }
 
         // Create a chat ID that's the same regardless of who started the chat
-        chatId = [currentUserId, otherUser.id].sorted().joined(separator: "_")
+        chatId = [currentUserId, otherUser.userId].sorted().joined(separator: "_")
 
         listenerRegistration = db.collection("chats")
             .document(chatId)
@@ -168,7 +168,7 @@ class ChatViewModel: ObservableObject {
                 return
             }
 
-            let chatId = [currentUserId, otherUser.id].sorted().joined(separator: "_")
+            let chatId = [currentUserId, otherUser.userId].sorted().joined(separator: "_")
 
             // Get all messages in the chat
             let snapshot = try await db.collection("chats")

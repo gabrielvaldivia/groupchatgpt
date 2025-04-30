@@ -17,13 +17,16 @@ struct GroupChatGPTApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if authService.isAuthenticated {
-                ContentView()
-                    .environmentObject(authService)
-            } else {
-                SignInView()
-                    .environmentObject(authService)
+            NavigationView {
+                if authService.isAuthenticated {
+                    UserListView()
+                        .environmentObject(authService)
+                } else {
+                    SignInView()
+                        .environmentObject(authService)
+                }
             }
+            .navigationViewStyle(.stack)
         }
     }
 }

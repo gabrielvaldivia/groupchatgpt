@@ -14,12 +14,17 @@ public class AuthenticationService: NSObject, ObservableObject {
     @Published public var error: Error?
 
     private var signInContinuation: CheckedContinuation<Void, Error>?
+    private var isSigningIn = false
 
     private override init() {
         super.init()
     }
 
     public func handleSignInWithAppleRequest() async throws {
+        guard !isSigningIn else { return }
+        isSigningIn = true
+        defer { isSigningIn = false }
+
         let provider = ASAuthorizationAppleIDProvider()
         let request = provider.createRequest()
         request.requestedScopes = [.fullName, .email]

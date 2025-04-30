@@ -6,6 +6,7 @@ struct SignInView: View {
     @EnvironmentObject var authService: AuthenticationService
     @Environment(\.colorScheme) var colorScheme
     @State private var showError = false
+    @State private var isSigningIn = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -23,7 +24,10 @@ struct SignInView: View {
                 onRequest: { request in
                     request.requestedScopes = [.fullName, .email]
                 },
-                onCompletion: { _ in
+                onCompletion: { result in
+                    guard !isSigningIn else { return }
+                    isSigningIn = true
+
                     Task {
                         do {
                             try await authService.handleSignInWithAppleRequest()
@@ -31,6 +35,7 @@ struct SignInView: View {
                             print("Sign in failed: \(error.localizedDescription)")
                             showError = true
                         }
+                        isSigningIn = false
                     }
                 }
             )
@@ -39,6 +44,7 @@ struct SignInView: View {
             )
             .frame(height: 45)
             .padding(.horizontal, 40)
+            .disabled(isSigningIn)
 
             Spacer()
         }
