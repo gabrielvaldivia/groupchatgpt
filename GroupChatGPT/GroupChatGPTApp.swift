@@ -5,17 +5,24 @@
 //  Created by Gabriel Valdivia on 4/24/25.
 //
 
+import FirebaseAuth
 import FirebaseCore
+import FirebaseFirestore
 import SwiftUI
 
 @main
 struct GroupChatGPTApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @StateObject private var authService = AuthenticationService.shared
 
     var body: some Scene {
         WindowGroup {
-            NavigationView {
-                ChatView()
+            if authService.isAuthenticated {
+                ContentView()
+                    .environmentObject(authService)
+            } else {
+                SignInView()
+                    .environmentObject(authService)
             }
         }
     }

@@ -9,16 +9,19 @@ class ChatViewModel: ObservableObject {
 
     private let db = Firestore.firestore()
     private var listenerRegistration: ListenerRegistration?
-    private let openAIService: OpenAIService
+    private let openAIService = OpenAIService.shared
+    private let otherUser: User
+    private var chatId: String = ""
 
-    init() {
-        self.openAIService = OpenAIService(apiKey: Settings.apiKey)
+    init(otherUser: User) {
+        self.otherUser = otherUser
+        openAIService.configure(withApiKey: Settings.apiKey)
         signInAnonymously()
         setupMessagesListener()
     }
 
-    func isFromCurrentUser(_ message: Message) -> Bool {
-        return message.senderId == Auth.auth().currentUser?.uid
+    deinit {
+        listenerRegistration?.remove()
     }
 
     private func signInAnonymously() {
@@ -31,12 +34,22 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    func setupMessagesListener() {
+    private func setupMessagesListener() {
         print("Setting up messages listener...")
         // Cancel any existing listener
         listenerRegistration?.remove()
 
-        listenerRegistration = db.collection("messages")
+        guard let currentUserId = Auth.auth().currentUser?.uid else {
+            print("No current user")
+            return
+        }
+
+        // Create a chat ID that's the same regardless of who started the chat
+        chatId = [currentUserId, otherUser.id].sorted().joined(separator: "_")
+
+        listenerRegistration = db.collection("chats")
+            .document(chatId)
+            .collection("messages")
             .order(by: "timestamp", descending: false)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
@@ -54,11 +67,9 @@ class ChatViewModel: ObservableObject {
                 let newMessages = snapshot.documents.compactMap { document -> Message? in
                     do {
                         var message = try document.data(as: Message.self)
-                        // Ensure the message has the Firestore document ID
                         if message.id == nil {
                             message.id = document.documentID
                         }
-                        print("Decoded message: \(String(describing: message))")
                         return message
                     } catch {
                         print("Error decoding message: \(error.localizedDescription)")
@@ -67,30 +78,22 @@ class ChatViewModel: ObservableObject {
                 }
 
                 print("Received \(newMessages.count) messages")
-                DispatchQueue.main.async {
-                    self.messages = newMessages
-                }
+                self.messages = newMessages
             }
     }
 
     func sendMessage() {
-        print("Attempting to send message: \(newMessageText)")
-
-        guard !newMessageText.isEmpty else {
-            print("Message text is empty")
+        guard !newMessageText.isEmpty,
+            let currentUser = Auth.auth().currentUser
+        else {
             return
         }
 
-        guard let currentUser = Auth.auth().currentUser else {
-            print("No authenticated user found")
-            return
-        }
-
-        let messageText = newMessageText  // Create a local copy
-        self.newMessageText = ""  // Clear the text field immediately
+        let messageText = newMessageText
+        self.newMessageText = ""
 
         let message = Message(
-            id: nil,  // Firestore will generate this
+            id: nil,
             senderId: currentUser.uid,
             senderName: currentUser.email ?? "Anonymous",
             text: messageText,
@@ -99,14 +102,54 @@ class ChatViewModel: ObservableObject {
         )
 
         do {
-            let docRef = try db.collection("messages").addDocument(from: message)
-            print("Message sent successfully with ID: \(docRef.documentID)")
+            try db.collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .addDocument(from: message)
 
-            // Check for ChatGPT mention
+            print("Message sent successfully")
+
+            // Check if the message mentions @chatgpt
             if messageText.lowercased().contains("@chatgpt") {
-                print("ChatGPT mentioned, triggering response")
                 Task {
-                    await handleChatGPTMention(originalMessage: message)
+                    do {
+                        // Remove the @chatgpt mention from the message
+                        let cleanMessage = messageText.replacingOccurrences(
+                            of: "@chatgpt", with: "", options: [.caseInsensitive])
+
+                        // Add recent messages as context
+                        let recentMessages = messages.suffix(5)  // Get last 5 messages for context
+                        for msg in recentMessages {
+                            openAIService.addToHistory(
+                                chatId: chatId,
+                                role: msg.isFromGPT ? "assistant" : "user",
+                                content: "\(msg.senderName): \(msg.text)"
+                            )
+                        }
+
+                        // Generate response from OpenAI
+                        let response = try await openAIService.generateResponse(
+                            to: cleanMessage, chatId: chatId)
+
+                        // Create and send the GPT response message
+                        let gptMessage = Message(
+                            id: nil,
+                            senderId: "chatgpt",
+                            senderName: "ChatGPT",
+                            text: response,
+                            timestamp: Date(),
+                            isFromGPT: true
+                        )
+
+                        try db.collection("chats")
+                            .document(chatId)
+                            .collection("messages")
+                            .addDocument(from: gptMessage)
+
+                        print("ChatGPT response sent successfully")
+                    } catch {
+                        print("Error generating ChatGPT response: \(error.localizedDescription)")
+                    }
                 }
             }
         } catch {
@@ -114,105 +157,24 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    private func handleChatGPTMention(originalMessage: Message) async {
-        do {
-            // Get the last few messages for context (up to 10 messages)
-            let previousMessages = messages.suffix(10)
-
-            // Convert messages to chat format and add to conversation
-            for message in previousMessages {
-                if message.isFromGPT {
-                    openAIService.addToHistory(role: "assistant", content: message.text)
-                } else {
-                    openAIService.addToHistory(role: "user", content: message.text)
-                }
-            }
-
-            let userMessage = originalMessage.text
-                .replacingOccurrences(of: "@chatgpt", with: "", options: [.caseInsensitive])
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-
-            let response = try await openAIService.generateResponse(to: userMessage)
-
-            let gptMessage = Message(
-                id: nil,
-                senderId: "chatgpt",
-                senderName: "ChatGPT",
-                text: response,
-                timestamp: Date(),
-                isFromGPT: true
-            )
-
-            // Use async/await properly with Firestore
-            try await db.collection("messages").document().setData(try gptMessage.asDictionary())
-            print("ChatGPT response sent successfully")
-
-        } catch let error as OpenAIError {
-            print("OpenAI error: \(error)")
-
-            let errorMessage: String
-            switch error {
-            case .apiError(let message):
-                errorMessage = "API Error: \(message)"
-            case .invalidResponse:
-                errorMessage =
-                    "Sorry, there was a network error. Please check your internet connection and try again."
-            case .invalidURL:
-                errorMessage = "Configuration error. Please contact support."
-            case .decodingError:
-                errorMessage = "Sorry, I couldn't process the response. Please try again."
-            case .networkError:
-                errorMessage =
-                    "Sorry, there was a network error. Please check your internet connection and try again."
-            case .maxRetriesExceeded:
-                errorMessage =
-                    "Sorry, the request failed after multiple attempts. Please try again later."
-            }
-
-            let gptErrorMessage = Message(
-                id: nil,
-                senderId: "chatgpt",
-                senderName: "ChatGPT",
-                text: errorMessage,
-                timestamp: Date(),
-                isFromGPT: true
-            )
-
-            do {
-                // Use async/await properly with Firestore
-                try await db.collection("messages").document().setData(
-                    try gptErrorMessage.asDictionary())
-            } catch {
-                print("Failed to save error message: \(error.localizedDescription)")
-            }
-
-        } catch {
-            print("Unexpected error: \(error.localizedDescription)")
-
-            let gptErrorMessage = Message(
-                id: nil,
-                senderId: "chatgpt",
-                senderName: "ChatGPT",
-                text: "Sorry, an unexpected error occurred. Please try again.",
-                timestamp: Date(),
-                isFromGPT: true
-            )
-
-            do {
-                // Use async/await properly with Firestore
-                try await db.collection("messages").document().setData(
-                    try gptErrorMessage.asDictionary())
-            } catch {
-                print("Failed to save error message: \(error.localizedDescription)")
-            }
-        }
+    func isFromCurrentUser(_ message: Message) -> Bool {
+        return message.senderId == Auth.auth().currentUser?.uid
     }
 
     func clearAllMessages() async {
         print("Clearing all messages...")
         do {
-            // Get all messages
-            let snapshot = try await db.collection("messages").getDocuments()
+            guard let currentUserId = Auth.auth().currentUser?.uid else {
+                return
+            }
+
+            let chatId = [currentUserId, otherUser.id].sorted().joined(separator: "_")
+
+            // Get all messages in the chat
+            let snapshot = try await db.collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .getDocuments()
 
             // Delete each message
             for document in snapshot.documents {
@@ -220,7 +182,7 @@ class ChatViewModel: ObservableObject {
             }
 
             // Clear OpenAI conversation history
-            openAIService.clearConversationHistory()
+            openAIService.clearConversationHistory(for: chatId)
 
             print("Successfully cleared all messages")
         } catch {
@@ -228,7 +190,6 @@ class ChatViewModel: ObservableObject {
         }
     }
 }
-
 // Helper extension for Message
 extension Message {
     func asDictionary() throws -> [String: Any] {

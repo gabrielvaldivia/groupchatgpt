@@ -15,7 +15,11 @@ public struct Message: Identifiable, Codable, Equatable {
     }
 
     public init(
-        id: String? = nil, senderId: String, senderName: String, text: String, timestamp: Date,
+        id: String? = nil,
+        senderId: String,
+        senderName: String,
+        text: String,
+        timestamp: Date,
         isFromGPT: Bool
     ) {
         self.id = id

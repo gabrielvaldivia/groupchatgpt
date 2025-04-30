@@ -1,9 +1,17 @@
+import FirebaseAuth
+import FirebaseFirestore
 import SwiftUI
 
 struct ChatView: View {
-    @StateObject private var viewModel = ChatViewModel()
+    let otherUser: User
+    @StateObject private var viewModel: ChatViewModel
     @FocusState private var isFocused: Bool
     @State private var showingSettings = false
+
+    init(otherUser: User) {
+        self.otherUser = otherUser
+        self._viewModel = StateObject(wrappedValue: ChatViewModel(otherUser: otherUser))
+    }
 
     var body: some View {
         VStack {
@@ -70,7 +78,7 @@ struct ChatView: View {
                 alignment: .top
             )
         }
-        .navigationTitle("Group Chat")
+        .navigationTitle(otherUser.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -108,7 +116,10 @@ struct MessageBubble: View {
                     .padding(.vertical, 8)
                     .background(
                         GeometryReader { geometry in
-                            let color = isFromCurrentUser ? Color.blue : Color.gray.opacity(0.2)
+                            let color =
+                                isFromCurrentUser
+                                ? Color.blue
+                                : Color(.systemGray5)
                             color
                                 .cornerRadius(min(messageHeight * 0.5, 20))
                                 .onAppear {
