@@ -9,24 +9,54 @@ class ChatViewModel: ObservableObject {
 
     private let db = Firestore.firestore()
     private var listenerRegistration: ListenerRegistration?
+    private var threadListener: ListenerRegistration?
     private let openAIService = OpenAIService.shared
     private let thread: Thread
     private let authService: AuthenticationService
 
     init(thread: Thread) {
         self.thread = thread
-        self.authService = .shared
+        self.authService = AuthenticationService.shared
 
         // Configure OpenAI with thread's API key
         if let apiKey = thread.apiKey {
             openAIService.configure(chatId: thread.threadId, apiKey: apiKey)
         }
 
+        setupThreadListener()
         setupMessagesListener()
     }
 
     deinit {
         listenerRegistration?.remove()
+        threadListener?.remove()
+    }
+
+    private func setupThreadListener() {
+        print("Setting up thread listener...")
+        threadListener?.remove()
+
+        threadListener = db.collection("threads").document(thread.threadId)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+
+                if let error = error {
+                    print("Error listening for thread updates: \(error.localizedDescription)")
+                    return
+                }
+
+                guard let snapshot = snapshot, snapshot.exists,
+                    let updatedThread = try? snapshot.data(as: Thread.self)
+                else {
+                    return
+                }
+
+                // Update OpenAI configuration if API key changed
+                if let apiKey = updatedThread.apiKey {
+                    print("Updating API key configuration")
+                    self.openAIService.configure(chatId: self.thread.threadId, apiKey: apiKey)
+                }
+            }
     }
 
     private func setupMessagesListener() {
@@ -70,18 +100,28 @@ class ChatViewModel: ObservableObject {
     }
 
     func sendMessage() {
-        guard !newMessageText.isEmpty, let currentUser = authService.currentUser else { return }
+        guard !newMessageText.isEmpty, let currentUser = authService.currentUser else {
+            print("DEBUG: Cannot send message - no current user")
+            return
+        }
 
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("DEBUG: No Firebase Auth user ID")
+            return
+        }
+
+        print("DEBUG: Sending message as user: \(userId)")
         let messageText = newMessageText.trimmingCharacters(in: .whitespacesAndNewlines)
         newMessageText = ""
 
         let message = Message(
             messageId: UUID().uuidString,
-            senderId: currentUser.userId,
+            senderId: userId,
             senderName: currentUser.name,
             text: messageText,
             timestamp: Date()
         )
+        print("DEBUG: Created message with senderId: \(message.senderId)")
 
         // Save to Firestore
         Task {
@@ -116,7 +156,12 @@ class ChatViewModel: ObservableObject {
     }
 
     func isFromCurrentUser(_ message: Message) -> Bool {
-        return message.senderId == authService.currentUser?.userId
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("DEBUG: No Firebase Auth user ID")
+            return false
+        }
+        print("DEBUG: Comparing message.senderId: \(message.senderId) with userId: \(userId)")
+        return message.senderId == userId
     }
 
     func clearAllMessages() async {

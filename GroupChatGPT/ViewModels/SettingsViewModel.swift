@@ -14,31 +14,47 @@ class SettingsViewModel: ObservableObject {
     private let openAIService = OpenAIService.shared
     private let db = Firestore.firestore()
     private let threadListViewModel = ThreadListViewModel.shared
+    private var threadListener: ListenerRegistration?
 
     init(chatId: String) {
         self.chatId = chatId
         self.apiKey = openAIService.getAPIKey(for: chatId) ?? ""
-        loadThreadDetails()
+        setupThreadListener()
     }
 
-    private func loadThreadDetails() {
-        Task {
-            do {
-                let doc = try await db.collection("threads").document(chatId).getDocument()
-                if let thread = try? doc.data(as: Thread.self) {
-                    await MainActor.run {
-                        self.threadName = thread.name
-                        self.threadEmoji = thread.emoji
-                        self.apiKey = thread.apiKey ?? ""
-                        if let apiKey = thread.apiKey {
-                            self.openAIService.configure(chatId: self.chatId, apiKey: apiKey)
-                        }
-                    }
+    deinit {
+        threadListener?.remove()
+    }
+
+    private func setupThreadListener() {
+        print("Setting up thread listener in settings...")
+        threadListener?.remove()
+
+        threadListener = db.collection("threads").document(chatId)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+
+                if let error = error {
+                    print("Error listening for thread updates: \(error.localizedDescription)")
+                    return
                 }
-            } catch {
-                print("Error loading thread details: \(error)")
+
+                guard let snapshot = snapshot, snapshot.exists,
+                    let thread = try? snapshot.data(as: Thread.self)
+                else {
+                    return
+                }
+
+                // Update UI with latest thread data
+                self.threadName = thread.name
+                self.threadEmoji = thread.emoji
+                self.apiKey = thread.apiKey ?? ""
+
+                // Configure OpenAI service
+                if let apiKey = thread.apiKey {
+                    self.openAIService.configure(chatId: self.chatId, apiKey: apiKey)
+                }
             }
-        }
     }
 
     func updateThread(name: String, emoji: String) async throws {
@@ -53,21 +69,12 @@ class SettingsViewModel: ObservableObject {
         ]
 
         try await db.collection("threads").document(chatId).updateData(updates)
-
-        await MainActor.run {
-            self.threadName = name
-            self.threadEmoji = emoji
-        }
     }
 
     func updateAPIKey(_ newKey: String) {
-        apiKey = newKey
-        openAIService.configure(chatId: chatId, apiKey: newKey)
-
-        // Store in Firestore
         Task {
             do {
-                try await db.collection("chats").document(chatId).setData(
+                try await db.collection("threads").document(chatId).setData(
                     [
                         "apiKey": newKey
                     ], merge: true)
@@ -78,13 +85,9 @@ class SettingsViewModel: ObservableObject {
     }
 
     func clearAPIKey() {
-        apiKey = ""
-        openAIService.clearAPIKey(for: chatId)
-
-        // Remove from Firestore
         Task {
             do {
-                try await db.collection("chats").document(chatId).updateData([
+                try await db.collection("threads").document(chatId).updateData([
                     "apiKey": FieldValue.delete()
                 ])
             } catch {

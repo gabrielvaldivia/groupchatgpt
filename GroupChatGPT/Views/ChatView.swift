@@ -117,10 +117,7 @@ struct MessageBubble: View {
                     .padding(.vertical, 8)
                     .background(
                         GeometryReader { geometry in
-                            let color =
-                                isFromCurrentUser
-                                ? Color.blue
-                                : Color(.systemGray5)
+                            let color = isFromCurrentUser ? Color.blue : Color(.systemGray5)
                             color
                                 .cornerRadius(min(messageHeight * 0.5, 20))
                                 .onAppear {
