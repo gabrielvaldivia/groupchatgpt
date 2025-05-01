@@ -9,6 +9,7 @@ struct UserListView: View {
     @State private var showError = false
     @State private var errorMessage: String?
     @State private var showingProfile = false
+    @State private var showingCreateThread = false
 
     var body: some View {
         Group {
@@ -27,7 +28,7 @@ struct UserListView: View {
                 userList
             }
         }
-        .navigationTitle("Chats")
+        .navigationTitle("Users")
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
@@ -37,12 +38,22 @@ struct UserListView: View {
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingCreateThread = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
                 signOutButton
             }
         }
         .sheet(isPresented: $showingProfile) {
             ProfileView()
                 .environmentObject(authService)
+        }
+        .sheet(isPresented: $showingCreateThread) {
+            CreateThreadView()
         }
         .overlay {
             if isLoading {
@@ -69,11 +80,7 @@ struct UserListView: View {
         List {
             ForEach(users) { user in
                 if user.id != authService.currentUser?.id {
-                    NavigationLink {
-                        ChatView(otherUser: user)
-                    } label: {
-                        UserRow(user: user)
-                    }
+                    UserRow(user: user)
                 }
             }
         }

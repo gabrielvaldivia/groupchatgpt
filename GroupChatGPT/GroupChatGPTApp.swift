@@ -19,7 +19,7 @@ struct GroupChatGPTApp: App {
         WindowGroup {
             NavigationView {
                 if authService.isAuthenticated {
-                    UserListView()
+                    ThreadListView()
                         .environmentObject(authService)
                 } else {
                     SignInView()

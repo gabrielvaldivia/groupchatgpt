@@ -114,38 +114,29 @@ class ProfileViewModel: ObservableObject {
         guard let userId = Auth.auth().currentUser?.uid else { return }
 
         do {
-            var updateData: [String: Any] = [:]
+            // Create a complete user object with all required fields
+            let user = User(
+                id: userId,
+                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                email: nil,
+                profileImageURL: nil
+            )
 
-            // Update name if changed
-            if name != originalName {
-                updateData["name"] = name
-            }
+            var userData = try JSONEncoder().encode(user)
+            var dict = try JSONSerialization.jsonObject(with: userData) as? [String: Any] ?? [:]
 
-            // Update image if selected
+            // Add the profile image if it was updated
             if let imageData = imageData {
-                // Convert image data to base64 string
                 let base64String = imageData.base64EncodedString()
                 let imageURLString = "data:image/jpeg;base64,\(base64String)"
-                updateData["profileImageURL"] = imageURLString
+                dict["profileImageURL"] = imageURLString
             }
 
-            if !updateData.isEmpty {
-                let docRef = db.collection("users").document(userId)
+            // Always use setData to ensure all required fields are present
+            try await db.collection("users").document(userId).setData(dict, merge: true)
 
-                // First try to get the document
-                let doc = try await docRef.getDocument()
-
-                if doc.exists {
-                    // Update existing document
-                    try await docRef.updateData(updateData)
-                } else {
-                    // Create new document with all required fields
-                    var newUserData = updateData
-                    newUserData["name"] = name
-                    newUserData["lastLoginDate"] = Timestamp(date: Date())
-                    try await docRef.setData(newUserData, merge: true)
-                }
-            }
+            // Update original name to reflect the saved state
+            originalName = name
         } catch {
             showError = true
             errorMessage = "Failed to save changes: \(error.localizedDescription)"

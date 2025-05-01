@@ -12,7 +12,7 @@ enum OpenAIError: Error {
 class OpenAIService {
     static let shared = OpenAIService()
 
-    private var apiKey: String = ""
+    private var apiKeys: [String: String] = [:]  // chatId: apiKey
     private let baseURL = "https://api.openai.com/v1/chat/completions"
     private let session: URLSession
     private var conversationHistories: [String: [[String: String]]] = [:]
@@ -28,8 +28,16 @@ class OpenAIService {
         self.session = URLSession(configuration: config)
     }
 
-    func configure(withApiKey apiKey: String) {
-        self.apiKey = apiKey
+    func configure(chatId: String, apiKey: String) {
+        apiKeys[chatId] = apiKey
+    }
+
+    func getAPIKey(for chatId: String) -> String? {
+        return apiKeys[chatId]
+    }
+
+    func clearAPIKey(for chatId: String) {
+        apiKeys.removeValue(forKey: chatId)
     }
 
     deinit {
@@ -69,6 +77,10 @@ class OpenAIService {
     func generateResponse(to message: String, chatId: String) async throws -> String {
         guard let url = URL(string: baseURL) else {
             throw OpenAIError.invalidURL
+        }
+
+        guard let apiKey = apiKeys[chatId] else {
+            throw OpenAIError.apiError("No API key configured for this chat")
         }
 
         var request = URLRequest(url: url)

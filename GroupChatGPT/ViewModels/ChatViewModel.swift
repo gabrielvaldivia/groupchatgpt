@@ -10,13 +10,18 @@ class ChatViewModel: ObservableObject {
     private let db = Firestore.firestore()
     private var listenerRegistration: ListenerRegistration?
     private let openAIService = OpenAIService.shared
-    private let otherUser: User
-    private var chatId: String = ""
+    private let thread: Thread
+    private let authService: AuthenticationService
 
-    init(otherUser: User) {
-        self.otherUser = otherUser
-        openAIService.configure(withApiKey: Settings.apiKey)
-        signInAnonymously()
+    init(thread: Thread) {
+        self.thread = thread
+        self.authService = .shared
+
+        // Configure OpenAI with thread's API key
+        if let apiKey = thread.apiKey {
+            openAIService.configure(chatId: thread.threadId, apiKey: apiKey)
+        }
+
         setupMessagesListener()
     }
 
@@ -24,31 +29,13 @@ class ChatViewModel: ObservableObject {
         listenerRegistration?.remove()
     }
 
-    private func signInAnonymously() {
-        Auth.auth().signInAnonymously { result, error in
-            if let error = error {
-                print("Error signing in: \(error.localizedDescription)")
-                return
-            }
-            print("Successfully signed in anonymously")
-        }
-    }
-
     private func setupMessagesListener() {
         print("Setting up messages listener...")
         // Cancel any existing listener
         listenerRegistration?.remove()
 
-        guard let currentUserId = Auth.auth().currentUser?.uid else {
-            print("No current user")
-            return
-        }
-
-        // Create a chat ID that's the same regardless of who started the chat
-        chatId = [currentUserId, otherUser.userId].sorted().joined(separator: "_")
-
-        listenerRegistration = db.collection("chats")
-            .document(chatId)
+        listenerRegistration = db.collection("threads")
+            .document(thread.threadId)
             .collection("messages")
             .order(by: "timestamp", descending: false)
             .addSnapshotListener { [weak self] snapshot, error in
@@ -83,96 +70,61 @@ class ChatViewModel: ObservableObject {
     }
 
     func sendMessage() {
-        guard !newMessageText.isEmpty,
-            let currentUser = Auth.auth().currentUser
-        else {
-            return
-        }
+        guard !newMessageText.isEmpty, let currentUser = authService.currentUser else { return }
 
-        let messageText = newMessageText
-        self.newMessageText = ""
+        let messageText = newMessageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        newMessageText = ""
 
         let message = Message(
-            id: nil,
-            senderId: currentUser.uid,
-            senderName: currentUser.email ?? "Anonymous",
+            messageId: UUID().uuidString,
+            senderId: currentUser.userId,
+            senderName: currentUser.name,
             text: messageText,
-            timestamp: Date(),
-            isFromGPT: false
+            timestamp: Date()
         )
 
-        do {
-            try db.collection("chats")
-                .document(chatId)
-                .collection("messages")
-                .addDocument(from: message)
+        // Save to Firestore
+        Task {
+            do {
+                try await db.collection("threads").document(thread.threadId)
+                    .collection("messages")
+                    .document(message.messageId)
+                    .setData(from: message)
 
-            print("Message sent successfully")
+                // Generate AI response if API key is configured
+                if let apiKey = thread.apiKey {
+                    let aiResponse = try await openAIService.generateResponse(
+                        to: "\(message.senderName): \(message.text)", chatId: thread.threadId)
 
-            // Check if the message mentions @chatgpt
-            if messageText.lowercased().contains("@chatgpt") {
-                Task {
-                    do {
-                        // Remove the @chatgpt mention from the message
-                        let cleanMessage = messageText.replacingOccurrences(
-                            of: "@chatgpt", with: "", options: [.caseInsensitive])
+                    let aiMessage = Message(
+                        messageId: UUID().uuidString,
+                        senderId: "ai",
+                        senderName: "Assistant",
+                        text: aiResponse,
+                        timestamp: Date()
+                    )
 
-                        // Add recent messages as context
-                        let recentMessages = messages.suffix(5)  // Get last 5 messages for context
-                        for msg in recentMessages {
-                            openAIService.addToHistory(
-                                chatId: chatId,
-                                role: msg.isFromGPT ? "assistant" : "user",
-                                content: "\(msg.senderName): \(msg.text)"
-                            )
-                        }
-
-                        // Generate response from OpenAI
-                        let response = try await openAIService.generateResponse(
-                            to: cleanMessage, chatId: chatId)
-
-                        // Create and send the GPT response message
-                        let gptMessage = Message(
-                            id: nil,
-                            senderId: "chatgpt",
-                            senderName: "ChatGPT",
-                            text: response,
-                            timestamp: Date(),
-                            isFromGPT: true
-                        )
-
-                        try db.collection("chats")
-                            .document(chatId)
-                            .collection("messages")
-                            .addDocument(from: gptMessage)
-
-                        print("ChatGPT response sent successfully")
-                    } catch {
-                        print("Error generating ChatGPT response: \(error.localizedDescription)")
-                    }
+                    try await db.collection("threads").document(thread.threadId)
+                        .collection("messages")
+                        .document(aiMessage.messageId)
+                        .setData(from: aiMessage)
                 }
+            } catch {
+                print("Error sending message: \(error)")
             }
-        } catch {
-            print("Error sending message: \(error.localizedDescription)")
         }
     }
 
     func isFromCurrentUser(_ message: Message) -> Bool {
-        return message.senderId == Auth.auth().currentUser?.uid
+        return message.senderId == authService.currentUser?.userId
     }
 
     func clearAllMessages() async {
         print("Clearing all messages...")
         do {
-            guard let currentUserId = Auth.auth().currentUser?.uid else {
-                return
-            }
-
-            let chatId = [currentUserId, otherUser.userId].sorted().joined(separator: "_")
-
-            // Get all messages in the chat
-            let snapshot = try await db.collection("chats")
-                .document(chatId)
+            // Get all messages in the thread
+            let snapshot = try await db.collection("threads")
+                .document(thread.threadId)
                 .collection("messages")
                 .getDocuments()
 
@@ -182,23 +134,11 @@ class ChatViewModel: ObservableObject {
             }
 
             // Clear OpenAI conversation history
-            openAIService.clearConversationHistory(for: chatId)
+            openAIService.clearConversationHistory(for: thread.threadId)
 
             print("Successfully cleared all messages")
         } catch {
             print("Error clearing messages: \(error)")
         }
-    }
-}
-// Helper extension for Message
-extension Message {
-    func asDictionary() throws -> [String: Any] {
-        return [
-            "senderId": senderId,
-            "senderName": senderName,
-            "text": text,
-            "timestamp": timestamp,
-            "isFromGPT": isFromGPT,
-        ]
     }
 }

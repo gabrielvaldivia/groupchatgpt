@@ -115,10 +115,14 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
         let name = [credentials.fullName?.givenName, credentials.fullName?.familyName]
             .compactMap { $0 }
             .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // If no name is provided during sign in, use "New User" and prompt them to update in profile
+        let displayName = name.isEmpty ? "New User" : name
 
         let user = User(
             id: userId,
-            name: name.isEmpty ? "User" : name,
+            name: displayName,
             email: credentials.email
         )
 

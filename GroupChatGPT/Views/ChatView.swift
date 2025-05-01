@@ -3,14 +3,15 @@ import FirebaseFirestore
 import SwiftUI
 
 struct ChatView: View {
-    let otherUser: User
+    let thread: Thread
     @StateObject private var viewModel: ChatViewModel
     @FocusState private var isFocused: Bool
     @State private var showingSettings = false
+    @EnvironmentObject private var authService: AuthenticationService
 
-    init(otherUser: User) {
-        self.otherUser = otherUser
-        self._viewModel = StateObject(wrappedValue: ChatViewModel(otherUser: otherUser))
+    init(thread: Thread) {
+        self.thread = thread
+        self._viewModel = StateObject(wrappedValue: ChatViewModel(thread: thread))
     }
 
     var body: some View {
@@ -78,7 +79,7 @@ struct ChatView: View {
                 alignment: .top
             )
         }
-        .navigationTitle(otherUser.name)
+        .navigationTitle("\(thread.emoji) \(thread.name)")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -90,7 +91,7 @@ struct ChatView: View {
             }
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView()
+            SettingsView(chatId: thread.threadId)
         }
     }
 }
