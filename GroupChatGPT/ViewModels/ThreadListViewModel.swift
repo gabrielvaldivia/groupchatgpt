@@ -30,6 +30,9 @@ class ThreadListViewModel: ObservableObject {
         print("ThreadListViewModel: Setting up listener for user \(currentUserId)")
         isLoading = true
 
+        // Cancel any existing listener
+        listenerRegistration?.remove()
+
         let query = db.collection("threads")
             .whereField("participants", arrayContains: currentUserId)
 
@@ -72,9 +75,7 @@ class ThreadListViewModel: ObservableObject {
         }
     }
 
-    func createThread(name: String, emoji: String, participants: [String], apiKey: String?)
-        async throws
-    {
+    func createThread(name: String, participants: [String], apiKey: String?) async throws {
         guard let currentUserId = Auth.auth().currentUser?.uid else {
             throw NSError(
                 domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No authenticated user"]
@@ -89,7 +90,6 @@ class ThreadListViewModel: ObservableObject {
 
         let thread = Thread(
             name: name,
-            emoji: emoji,
             participants: Array(allParticipants),
             createdBy: currentUserId,
             apiKey: apiKey

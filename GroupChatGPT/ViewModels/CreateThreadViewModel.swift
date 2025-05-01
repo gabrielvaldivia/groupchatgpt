@@ -139,7 +139,7 @@ class CreateThreadViewModel: ObservableObject {
         }
     }
 
-    func createThread(name: String, emoji: String, apiKey: String?) async throws {
+    func createThread(name: String, apiKey: String?) async throws {
         print("CreateThreadViewModel: Starting thread creation")
 
         guard let currentUserId = Auth.auth().currentUser?.uid else {
@@ -163,23 +163,15 @@ class CreateThreadViewModel: ObservableObject {
         // Create the thread
         let thread = Thread(
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            emoji: emoji,
             participants: participantIds,
             createdBy: currentUserId,
             apiKey: apiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
         )
 
-        do {
-            // Save to Firestore
-            let threadRef = db.collection("threads").document()
-            print("CreateThreadViewModel: Saving thread to Firestore")
-            try await threadRef.setData(from: thread)
-            print("CreateThreadViewModel: Thread created successfully")
-        } catch {
-            print("CreateThreadViewModel: Error creating thread: \(error.localizedDescription)")
-            self.error = CreateThreadError.firestoreError(error.localizedDescription)
-            throw error
-        }
+        // Save to Firestore
+        let threadRef = try await db.collection("threads").document()
+        try threadRef.setData(from: thread)
+        print("CreateThreadViewModel: Thread created successfully")
     }
 
     func clearError() {

@@ -86,9 +86,6 @@ struct ThreadRow: View {
 
     var body: some View {
         HStack {
-            Text(thread.emoji)
-                .font(.title)
-
             VStack(alignment: .leading) {
                 Text(thread.name)
                     .font(.headline)
@@ -96,7 +93,6 @@ struct ThreadRow: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
-            .padding(.leading, 8)
 
             Spacer()
         }

@@ -7,11 +7,7 @@ struct SettingsView: View {
     @State private var showingClearConfirmation = false
     @State private var showingDeleteConfirmation = false
     @State private var isClearing = false
-    @State private var apiKeyInput: String = ""
     @State private var showInvalidKeyAlert = false
-    @State private var showEmojiPicker = false
-    @State private var editedName: String = ""
-    @State private var editedEmoji: String = ""
     @State private var showEmptyNameAlert = false
 
     init(chatId: String) {
@@ -23,29 +19,14 @@ struct SettingsView: View {
         NavigationView {
             Form {
                 Section {
-                    HStack(spacing: 12) {
-                        Text(editedEmoji)
-                            .font(.system(size: 40))
-
-                        VStack(alignment: .leading) {
-                            TextField("Thread Name", text: $editedName)
-                                .textInputAutocapitalization(.words)
-                        }
-
-                        Spacer()
-
-                        Button("Change") {
-                            showEmojiPicker = true
-                        }
-                        .foregroundColor(.blue)
-                    }
-                    .padding(.vertical, 4)
+                    TextField("Thread Name", text: $viewModel.threadName)
+                        .textInputAutocapitalization(.words)
                 } header: {
                     Text("THREAD INFO")
                 }
 
                 Section {
-                    TextField("Enter API Key", text: $apiKeyInput)
+                    TextField("Enter API Key", text: $viewModel.apiKey)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .textCase(.none)
@@ -56,11 +37,6 @@ struct SettingsView: View {
                         .disableAutocorrection(true)
                         .onSubmit {
                             validateAndSaveKey()
-                        }
-                        .onAppear {
-                            apiKeyInput = viewModel.apiKey
-                            editedName = viewModel.threadName
-                            editedEmoji = viewModel.threadEmoji
                         }
 
                     if !viewModel.apiKey.isEmpty {
@@ -130,9 +106,6 @@ struct SettingsView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showEmojiPicker) {
-                EmojiPickerView(selectedEmoji: $editedEmoji)
-            }
             .alert("Invalid API Key", isPresented: $showInvalidKeyAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -174,7 +147,7 @@ struct SettingsView: View {
     }
 
     private func validateAndSaveKey() {
-        let key = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = viewModel.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         if key.isEmpty || (key.starts(with: "sk-") && key.count > 20) {
             viewModel.updateAPIKey(key)
         } else {
@@ -183,7 +156,7 @@ struct SettingsView: View {
     }
 
     private func saveChanges() {
-        let trimmedName = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedName = viewModel.threadName.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedName.isEmpty {
             showEmptyNameAlert = true
             return
@@ -191,7 +164,7 @@ struct SettingsView: View {
 
         Task {
             do {
-                try await viewModel.updateThread(name: editedName, emoji: editedEmoji)
+                try await viewModel.updateThread(name: viewModel.threadName)
                 validateAndSaveKey()
                 dismiss()
             } catch {

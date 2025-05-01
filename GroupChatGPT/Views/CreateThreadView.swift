@@ -4,9 +4,7 @@ struct CreateThreadView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = CreateThreadViewModel()
     @State private var threadName = ""
-    @State private var selectedEmoji = "💬"
     @State private var apiKey = ""
-    @State private var showEmojiPicker = false
     @State private var showError = false
     @State private var path = NavigationPath()
 
@@ -17,9 +15,7 @@ struct CreateThreadView: View {
                 .navigationDestination(for: String.self) { _ in
                     ThreadDetailsView(
                         threadName: $threadName,
-                        selectedEmoji: $selectedEmoji,
                         apiKey: $apiKey,
-                        showEmojiPicker: $showEmojiPicker,
                         viewModel: viewModel,
                         dismiss: dismiss
                     )
@@ -39,9 +35,6 @@ struct CreateThreadView: View {
                     }
                 }
                 .navigationBarTitleDisplayMode(.inline)
-                .sheet(isPresented: $showEmojiPicker) {
-                    EmojiPickerView(selectedEmoji: $selectedEmoji)
-                }
                 .alert("Error", isPresented: $showError, presenting: viewModel.error) { _ in
                     Button("OK") {
                         viewModel.clearError()
@@ -130,9 +123,7 @@ struct UserSelectionRow: View {
 
 struct ThreadDetailsView: View {
     @Binding var threadName: String
-    @Binding var selectedEmoji: String
     @Binding var apiKey: String
-    @Binding var showEmojiPicker: Bool
     @ObservedObject var viewModel: CreateThreadViewModel
     @State private var showError = false
     let dismiss: DismissAction
@@ -140,14 +131,6 @@ struct ThreadDetailsView: View {
     var body: some View {
         Form {
             Section {
-                HStack {
-                    Text(selectedEmoji)
-                        .font(.title)
-                    Button("Change") {
-                        showEmojiPicker = true
-                    }
-                }
-
                 TextField("Thread Name", text: $threadName)
                     .textInputAutocapitalization(.words)
             } header: {
@@ -206,7 +189,6 @@ struct ThreadDetailsView: View {
             do {
                 try await viewModel.createThread(
                     name: threadName,
-                    emoji: selectedEmoji,
                     apiKey: apiKey.isEmpty ? nil : apiKey
                 )
                 await MainActor.run {
@@ -216,39 +198,6 @@ struct ThreadDetailsView: View {
                 print("ThreadDetailsView: Error creating thread: \(error.localizedDescription)")
                 await MainActor.run {
                     showError = true
-                }
-            }
-        }
-    }
-}
-
-struct EmojiPickerView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var selectedEmoji: String
-
-    let emojis = ["💬", "🗣️", "💭", "🤖", "🎯", "💡", "🎨", "🎮", "📚", "🎵", "🎬", "🏆", "⚡️", "🌟", "🔥", "🌈"]
-
-    var body: some View {
-        NavigationView {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 20) {
-                ForEach(emojis, id: \.self) { emoji in
-                    Button {
-                        selectedEmoji = emoji
-                        dismiss()
-                    } label: {
-                        Text(emoji)
-                            .font(.system(size: 40))
-                    }
-                }
-            }
-            .padding()
-            .navigationTitle("Select Emoji")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
                 }
             }
         }

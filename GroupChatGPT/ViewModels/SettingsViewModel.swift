@@ -8,7 +8,6 @@ class SettingsViewModel: ObservableObject {
     @Published var apiKey: String = ""
     @Published var isDeleting = false
     @Published var threadName: String = ""
-    @Published var threadEmoji: String = ""
     @Published var isUpdating = false
     private let chatId: String
     private let openAIService = OpenAIService.shared
@@ -18,8 +17,28 @@ class SettingsViewModel: ObservableObject {
 
     init(chatId: String) {
         self.chatId = chatId
-        self.apiKey = openAIService.getAPIKey(for: chatId) ?? ""
+        self.apiKey = ""
+        self.threadName = ""
+
+        // Fetch initial thread data
+        fetchInitialThreadData()
         setupThreadListener()
+    }
+
+    private func fetchInitialThreadData() {
+        db.collection("threads").document(chatId).getDocument { [weak self] snapshot, error in
+            guard let self = self,
+                let snapshot = snapshot,
+                let thread = try? snapshot.data(as: Thread.self)
+            else {
+                return
+            }
+
+            Task { @MainActor in
+                self.threadName = thread.name
+                self.apiKey = thread.apiKey ?? ""
+            }
+        }
     }
 
     deinit {
@@ -47,28 +66,19 @@ class SettingsViewModel: ObservableObject {
 
                 // Update UI with latest thread data
                 self.threadName = thread.name
-                self.threadEmoji = thread.emoji
                 self.apiKey = thread.apiKey ?? ""
-
-                // Configure OpenAI service
-                if let apiKey = thread.apiKey {
-                    self.openAIService.configure(chatId: self.chatId, apiKey: apiKey)
-                }
             }
     }
 
-    func updateThread(name: String, emoji: String) async throws {
+    func updateThread(name: String) async throws {
         guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
         isUpdating = true
         defer { isUpdating = false }
 
-        let updates = [
-            "name": name.trimmingCharacters(in: .whitespacesAndNewlines),
-            "emoji": emoji,
-        ]
-
-        try await db.collection("threads").document(chatId).updateData(updates)
+        try await db.collection("threads").document(chatId).updateData([
+            "name": name.trimmingCharacters(in: .whitespacesAndNewlines)
+        ])
     }
 
     func updateAPIKey(_ newKey: String) {
@@ -137,6 +147,7 @@ class SettingsViewModel: ObservableObject {
         defer { isDeleting = false }
 
         try await threadListViewModel.deleteThread(
-            Thread(id: chatId, name: "", emoji: "", participants: [], createdBy: ""))
+            Thread(id: chatId, name: "", participants: [], createdBy: "")
+        )
     }
 }

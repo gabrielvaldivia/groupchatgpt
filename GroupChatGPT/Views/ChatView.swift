@@ -79,7 +79,7 @@ struct ChatView: View {
                 alignment: .top
             )
         }
-        .navigationTitle("\(thread.emoji) \(thread.name)")
+        .navigationTitle(thread.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
