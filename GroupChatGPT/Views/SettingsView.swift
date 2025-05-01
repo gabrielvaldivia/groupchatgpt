@@ -47,13 +47,21 @@ struct SettingsView: View {
                 } header: {
                     Text("OPENAI API KEY")
                 } footer: {
-                    Text("This API key will be shared with all participants in this chat.")
+                    Text("This API key will be shared with everyone in this chat.")
                 }
 
                 Section {
-                    Link(
-                        "Get API Key",
-                        destination: URL(string: "https://platform.openai.com/api-keys")!)
+                    TextField("Assistant Name", text: $viewModel.assistantName)
+                        .textInputAutocapitalization(.words)
+                        .onChange(of: viewModel.assistantName) { oldValue, newValue in
+                            viewModel.updateAssistantName(newValue)
+                        }
+                } header: {
+                    Text("ASSISTANT NAME")
+                } footer: {
+                    Text(
+                        "This is the name you'll use to address the AI assistant in chat (e.g. '@Alice' or 'Hey Alice')"
+                    )
                 }
 
                 Section {
@@ -69,11 +77,7 @@ struct SettingsView: View {
                         }
                     }
                     .disabled(isClearing)
-                } footer: {
-                    Text("This will permanently delete all messages in the conversation.")
-                }
 
-                Section {
                     Button(role: .destructive) {
                         showingDeleteConfirmation = true
                     } label: {
@@ -86,10 +90,8 @@ struct SettingsView: View {
                         }
                     }
                     .disabled(viewModel.isDeleting)
-                } footer: {
-                    Text(
-                        "This will permanently delete this thread and all its messages. This action cannot be undone."
-                    )
+                } header: {
+                    Text("DANGER ZONE")
                 }
             }
             .navigationTitle("Chat Settings")

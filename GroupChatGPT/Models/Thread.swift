@@ -8,6 +8,7 @@ struct Thread: Identifiable, Codable {
     let createdAt: Date
     let createdBy: String  // User ID
     var apiKey: String?
+    var assistantName: String?  // Add this field for custom assistant name
 
     var threadId: String {
         return id ?? UUID().uuidString
@@ -18,7 +19,8 @@ struct Thread: Identifiable, Codable {
         name: String,
         participants: [String],
         createdBy: String,
-        apiKey: String? = nil
+        apiKey: String? = nil,
+        assistantName: String? = nil  // Add to initializer
     ) {
         self.id = id
         self.name = name
@@ -26,5 +28,6 @@ struct Thread: Identifiable, Codable {
         self.createdBy = createdBy
         self.createdAt = Date()
         self.apiKey = apiKey
+        self.assistantName = assistantName
     }
 }

@@ -8,6 +8,7 @@ class SettingsViewModel: ObservableObject {
     @Published var apiKey: String = ""
     @Published var isDeleting = false
     @Published var threadName: String = ""
+    @Published var assistantName: String = ""
     @Published var isUpdating = false
     private let chatId: String
     private let openAIService = OpenAIService.shared
@@ -19,6 +20,7 @@ class SettingsViewModel: ObservableObject {
         self.chatId = chatId
         self.apiKey = ""
         self.threadName = ""
+        self.assistantName = ""
 
         // Fetch initial thread data
         fetchInitialThreadData()
@@ -37,6 +39,7 @@ class SettingsViewModel: ObservableObject {
             Task { @MainActor in
                 self.threadName = thread.name
                 self.apiKey = thread.apiKey ?? ""
+                self.assistantName = thread.assistantName ?? ""
             }
         }
     }
@@ -67,6 +70,7 @@ class SettingsViewModel: ObservableObject {
                 // Update UI with latest thread data
                 self.threadName = thread.name
                 self.apiKey = thread.apiKey ?? ""
+                self.assistantName = thread.assistantName ?? ""
             }
     }
 
@@ -149,5 +153,21 @@ class SettingsViewModel: ObservableObject {
         try await threadListViewModel.deleteThread(
             Thread(id: chatId, name: "", participants: [], createdBy: "")
         )
+    }
+
+    func updateAssistantName(_ name: String) {
+        Task {
+            do {
+                try await db.collection("threads").document(chatId).setData(
+                    [
+                        "assistantName": name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ], merge: true)
+
+                // Update OpenAI service with new assistant name
+                openAIService.configureAssistantName(chatId: chatId, name: name)
+            } catch {
+                print("Error updating assistant name: \(error)")
+            }
+        }
     }
 }

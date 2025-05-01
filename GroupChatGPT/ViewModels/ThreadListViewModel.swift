@@ -92,7 +92,8 @@ class ThreadListViewModel: ObservableObject {
             name: name,
             participants: Array(allParticipants),
             createdBy: currentUserId,
-            apiKey: apiKey
+            apiKey: apiKey,
+            assistantName: "ChatGPT"  // Set default assistant name
         )
 
         let threadRef = db.collection("threads").document()

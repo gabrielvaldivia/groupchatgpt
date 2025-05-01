@@ -7,6 +7,7 @@ enum OpenAIError: Error {
     case decodingError
     case networkError(Error)
     case maxRetriesExceeded
+    case notAddressed
 }
 
 class OpenAIService {
@@ -17,6 +18,10 @@ class OpenAIService {
     private let session: URLSession
     private var conversationHistories: [String: [[String: String]]] = [:]
     private let maxHistoryLength = 20  // Maximum number of messages to keep in history
+
+    // Add properties for assistant name configuration
+    private var assistantNames: [String: String] = [:]  // chatId: assistantName
+    private let defaultAssistantName = "ChatGPT"
 
     private init() {
         let config = URLSessionConfiguration.ephemeral
@@ -44,13 +49,32 @@ class OpenAIService {
         session.invalidateAndCancel()
     }
 
+    // Add method to configure assistant name
+    func configureAssistantName(chatId: String, name: String) {
+        assistantNames[chatId] = name
+        // Reset conversation history to update system message with new name
+        clearConversationHistory(for: chatId)
+    }
+
+    func clearAssistantName(for chatId: String) {
+        assistantNames.removeValue(forKey: chatId)
+        // Reset conversation history to update system message with default name
+        clearConversationHistory(for: chatId)
+    }
+
+    // Add method to get current assistant name
+    func getAssistantName(for chatId: String) -> String {
+        return assistantNames[chatId] ?? defaultAssistantName
+    }
+
     private func getOrCreateHistory(for chatId: String) -> [[String: String]] {
         if conversationHistories[chatId] == nil {
+            let assistantName = getAssistantName(for: chatId)
             conversationHistories[chatId] = [
                 [
                     "role": "system",
                     "content": """
-                    You are a helpful assistant in a group chat. Keep your responses concise and conversational.
+                    You are \(assistantName), a helpful assistant in a group chat. Keep your responses concise and conversational.
                     You should remember and reference information from previous messages in the conversation.
                     Each message includes the sender's name in the format "Name: message".
                     When responding, acknowledge the user by their name if it was mentioned in previous messages.
@@ -74,7 +98,20 @@ class OpenAIService {
         conversationHistories[chatId] = history
     }
 
+    private func isMessageAddressedToChatGPT(_ message: String, chatId: String) -> Bool {
+        let lowercasedMessage = message.lowercased()
+        let assistantName = getAssistantName(for: chatId).lowercased()
+
+        return lowercasedMessage.contains("@\(assistantName)")
+            || lowercasedMessage.contains("hey \(assistantName)")
+    }
+
     func generateResponse(to message: String, chatId: String) async throws -> String {
+        // Check if the message is addressed to the assistant
+        guard isMessageAddressedToChatGPT(message, chatId: chatId) else {
+            throw OpenAIError.notAddressed
+        }
+
         guard let url = URL(string: baseURL) else {
             throw OpenAIError.invalidURL
         }
@@ -150,11 +187,14 @@ class OpenAIService {
     }
 
     func clearConversationHistory(for chatId: String) {
+        let assistantName = getAssistantName(for: chatId)
         conversationHistories[chatId] = [
             [
                 "role": "system",
-                "content":
-                    "You are a helpful assistant in a group chat. Keep your responses concise and conversational. You should remember context from previous messages in the conversation.",
+                "content": """
+                You are \(assistantName), a helpful assistant in a group chat. Keep your responses concise and conversational. 
+                You should remember context from previous messages in the conversation.
+                """,
             ]
         ]
     }
