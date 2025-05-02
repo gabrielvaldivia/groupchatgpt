@@ -89,7 +89,7 @@ class NotificationService: NSObject, ObservableObject {
         do {
             // Remove any pending notifications for this thread
             let center = UNUserNotificationCenter.current()
-            let requests = try await center.pendingNotificationRequests()
+            let requests = await center.pendingNotificationRequests()
             for request in requests {
                 if request.content.threadIdentifier == threadId {
                     center.removePendingNotificationRequests(withIdentifiers: [request.identifier])
