@@ -10,6 +10,7 @@ struct Thread: Identifiable, Codable {
     var apiKey: String?
     var assistantName: String?  // Add this field for custom assistant name
     var customInstructions: String?  // Custom instructions for the AI assistant
+    var lastMessage: String?  // Preview of the last message
 
     var threadId: String {
         return id ?? UUID().uuidString
@@ -22,7 +23,8 @@ struct Thread: Identifiable, Codable {
         createdBy: String,
         apiKey: String? = nil,
         assistantName: String? = nil,
-        customInstructions: String? = nil
+        customInstructions: String? = nil,
+        lastMessage: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -32,5 +34,6 @@ struct Thread: Identifiable, Codable {
         self.apiKey = apiKey
         self.assistantName = assistantName
         self.customInstructions = customInstructions
+        self.lastMessage = lastMessage
     }
 }

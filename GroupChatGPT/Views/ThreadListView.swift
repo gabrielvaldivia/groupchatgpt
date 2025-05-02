@@ -1,3 +1,4 @@
+import FirebaseFirestore
 import SwiftUI
 
 struct ThreadListView: View {
@@ -33,6 +34,7 @@ struct ThreadListView: View {
                         }
                     }
                 }
+                .listStyle(.plain)
             }
 
             // Floating Action Button
@@ -83,19 +85,89 @@ struct ThreadListView: View {
 
 struct ThreadRow: View {
     let thread: Thread
+    @State private var participantUsers: [String: User] = [:]
+    @EnvironmentObject private var authService: AuthenticationService
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(thread.name)
                     .font(.headline)
-                Text("\(thread.participants.count) participants")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                if let lastMessage = thread.lastMessage {
+                    Text(lastMessage)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
+
+            // Facepile
+            HStack(spacing: -8) {
+                ForEach(thread.participants.prefix(3), id: \.self) { userId in
+                    if let user = participantUsers[userId] {
+                        if let url = user.profileImageURL {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    defaultAvatar
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 32, height: 32)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                                case .failure(_):
+                                    defaultAvatar
+                                @unknown default:
+                                    defaultAvatar
+                                }
+                            }
+                        } else {
+                            defaultAvatar
+                        }
+                    } else {
+                        defaultAvatar
+                    }
+                }
+                if thread.participants.count > 3 {
+                    Text("+\(thread.participants.count - 3)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(width: 32, height: 32)
+                        .background(Color.gray.opacity(0.2))
+                        .clipShape(Circle())
+                }
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
+        .task {
+            await loadParticipantUsers()
+        }
+    }
+
+    private var defaultAvatar: some View {
+        Image(systemName: "person.circle.fill")
+            .resizable()
+            .frame(width: 32, height: 32)
+            .foregroundColor(.gray)
+    }
+
+    private func loadParticipantUsers() async {
+        let db = Firestore.firestore()
+        for userId in thread.participants {
+            if participantUsers[userId] == nil {
+                do {
+                    let document = try await db.collection("users").document(userId).getDocument()
+                    if let user = try? document.data(as: User.self) {
+                        participantUsers[userId] = user
+                    }
+                } catch {
+                    print("Error loading user \(userId): \(error.localizedDescription)")
+                }
+            }
+        }
     }
 }

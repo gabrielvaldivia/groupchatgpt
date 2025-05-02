@@ -113,18 +113,14 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
         }
 
         let userId = credentials.user
-        let name = [credentials.fullName?.givenName, credentials.fullName?.familyName]
-            .compactMap { $0 }
-            .joined(separator: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let firstName = credentials.fullName?.givenName ?? "New User"
+        let email = credentials.email
 
-        // If no name is provided during sign in, use "New User" and prompt them to update in profile
-        let displayName = name.isEmpty ? "New User" : name
-
+        // Create a user with the first name and email
         let user = User(
             id: userId,
-            name: displayName,
-            email: credentials.email
+            name: firstName,
+            email: email
         )
 
         // Save to Firestore

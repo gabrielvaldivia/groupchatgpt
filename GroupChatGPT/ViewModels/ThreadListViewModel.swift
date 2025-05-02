@@ -53,10 +53,10 @@ class ThreadListViewModel: ObservableObject {
 
             print("ThreadListViewModel: Received \(snapshot.documents.count) threads")
 
-            self.threads = snapshot.documents.compactMap { document -> Thread? in
+            // First, decode the threads without last messages
+            let initialThreads = snapshot.documents.compactMap { document -> Thread? in
                 do {
                     var thread = try document.data(as: Thread.self)
-                    // Ensure the thread has an ID
                     if thread.id == nil {
                         thread.id = document.documentID
                     }
@@ -68,9 +68,42 @@ class ThreadListViewModel: ObservableObject {
                 }
             }
 
-            print("ThreadListViewModel: Successfully loaded \(self.threads.count) threads")
+            // Then fetch last messages for each thread
+            Task { [self] in
+                var updatedThreads = initialThreads
+                for (index, thread) in initialThreads.enumerated() {
+                    if let threadId = thread.id {
+                        do {
+                            let messagesSnapshot = try await self.db.collection("threads")
+                                .document(threadId)
+                                .collection("messages")
+                                .order(by: "timestamp", descending: true)
+                                .limit(to: 1)
+                                .getDocuments()
 
-            // Sort threads by creation date
+                            if let lastMessageDoc = messagesSnapshot.documents.first,
+                                let message = try? lastMessageDoc.data(as: Message.self)
+                            {
+                                updatedThreads[index].lastMessage = message.text
+                            }
+                        } catch {
+                            print(
+                                "ThreadListViewModel: Error fetching last message: \(error.localizedDescription)"
+                            )
+                        }
+                    }
+                }
+
+                // Update the threads array with last messages
+                await MainActor.run {
+                    self.threads = updatedThreads
+                    // Sort threads by creation date
+                    self.threads.sort { $0.createdAt > $1.createdAt }
+                }
+            }
+
+            // Set initial threads immediately
+            self.threads = initialThreads
             self.threads.sort { $0.createdAt > $1.createdAt }
         }
     }
