@@ -17,111 +17,19 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationView {
-            Form {
-                Section {
-                    TextField("Thread Name", text: $viewModel.threadName)
-                        .textInputAutocapitalization(.words)
-                } header: {
-                    Text("THREAD INFO")
-                }
-
-                Section {
-                    TextField("Enter API Key", text: $viewModel.apiKey)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .textCase(.none)
-                        .monospaced()
-                        .keyboardType(.asciiCapable)
-                        .submitLabel(.done)
-                        .textContentType(.none)
-                        .disableAutocorrection(true)
-                        .onSubmit {
-                            validateAndSaveKey()
-                        }
-
-                    if !viewModel.apiKey.isEmpty {
-                        Button(role: .destructive, action: viewModel.clearAPIKey) {
-                            Text("Clear API Key")
-                        }
-                    }
-                } header: {
-                    Text("OPENAI API KEY")
-                } footer: {
-                    Text("This API key will be shared with everyone in this chat.")
-                }
-
-                Section {
-                    TextField("Assistant Name", text: $viewModel.assistantName)
-                        .textInputAutocapitalization(.words)
-                        .onChange(of: viewModel.assistantName) { oldValue, newValue in
-                            viewModel.updateAssistantName(newValue)
-                        }
-                } header: {
-                    Text("ASSISTANT NAME")
-                } footer: {
-                    Text(
-                        "This is the name you'll use to address the AI assistant in chat (e.g. '@Alice' or 'Hey Alice')"
-                    )
-                }
-
-                Section {
-                    TextEditor(text: $viewModel.customInstructions)
-                        .frame(minHeight: 100)
-                        .onChange(of: viewModel.customInstructions) { oldValue, newValue in
-                            viewModel.updateCustomInstructions(newValue)
-                        }
-                } header: {
-                    Text("CUSTOM INSTRUCTIONS")
-                } footer: {
-                    Text(
-                        "Add custom instructions to guide how the AI assistant should behave and respond in this chat."
-                    )
-                }
-
-                Section {
-                    Button(role: .destructive) {
-                        showingClearConfirmation = true
-                    } label: {
-                        HStack {
-                            Text("Clear Conversation")
-                            if isClearing {
-                                Spacer()
-                                ProgressView()
-                            }
-                        }
-                    }
-                    .disabled(isClearing)
-
-                    Button(role: .destructive) {
-                        showingDeleteConfirmation = true
-                    } label: {
-                        HStack {
-                            Text("Delete Thread")
-                            if viewModel.isDeleting {
-                                Spacer()
-                                ProgressView()
-                            }
-                        }
-                    }
-                    .disabled(viewModel.isDeleting)
-                } header: {
-                    Text("DANGER ZONE")
-                }
-            }
+            ThreadSettingsForm(
+                threadName: $viewModel.threadName,
+                apiKey: $viewModel.apiKey,
+                assistantName: $viewModel.assistantName,
+                customInstructions: $viewModel.customInstructions,
+                showDangerZone: true,
+                onClearAPIKey: viewModel.clearAPIKey,
+                onSave: saveChanges,
+                isSaving: viewModel.isUpdating,
+                isSaveDisabled: viewModel.threadName.isEmpty
+            )
             .navigationTitle("Chat Settings")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    if viewModel.isUpdating {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Button("Done") {
-                            saveChanges()
-                        }
-                    }
-                }
-            }
             .alert("Invalid API Key", isPresented: $showInvalidKeyAlert) {
                 Button("OK", role: .cancel) {}
             } message: {

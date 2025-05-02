@@ -92,25 +92,14 @@ struct UserSelectionRow: View {
 
     var body: some View {
         HStack {
-            Group {
-                if let url = user.profileImageURL {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .frame(width: 40, height: 40)
-                            .clipShape(Circle())
-                    } placeholder: {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .frame(width: 40, height: 40)
-                            .foregroundStyle(.gray)
-                    }
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .frame(width: 40, height: 40)
-                        .foregroundStyle(.gray)
+            if let url = user.profileImageURL {
+                AsyncImage(url: url) { image in
+                    ProfilePhotoView(image: image, name: user.name, size: 40)
+                } placeholder: {
+                    ProfilePhotoView(image: nil, name: user.name, size: 40)
                 }
+            } else {
+                ProfilePhotoView(image: nil, name: user.name, size: 40)
             }
 
             Text(user.name)
@@ -131,53 +120,24 @@ struct ThreadDetailsView: View {
     @Binding var apiKey: String
     @ObservedObject var viewModel: CreateThreadViewModel
     @State private var showError = false
+    @State private var assistantName = ""
+    @State private var customInstructions = ""
     let dismiss: DismissAction
 
     var body: some View {
-        Form {
-            Section {
-                TextField("Thread Name", text: $threadName)
-                    .textInputAutocapitalization(.words)
-            } header: {
-                Text("THREAD INFO")
-            }
-
-            Section {
-                TextField("Enter API Key", text: $apiKey)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .textCase(.none)
-                    .monospaced()
-                    .keyboardType(.asciiCapable)
-                    .submitLabel(.done)
-                    .textContentType(.none)
-            } header: {
-                Text("OPENAI API KEY")
-            } footer: {
-                Text("This API key will be shared with all participants in this thread.")
-            }
-
-            Section {
-                Link(
-                    "Get API Key",
-                    destination: URL(string: "https://platform.openai.com/api-keys")!)
-            }
-        }
+        ThreadSettingsForm(
+            threadName: $threadName,
+            apiKey: $apiKey,
+            assistantName: $assistantName,
+            customInstructions: $customInstructions,
+            showDangerZone: false,
+            onClearAPIKey: { apiKey = "" },
+            onSave: createThread,
+            isSaving: viewModel.isCreatingThread,
+            isSaveDisabled: threadName.isEmpty
+        )
         .navigationTitle("Thread Details")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if viewModel.isCreatingThread {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Button("Save") {
-                        createThread()
-                    }
-                    .disabled(threadName.isEmpty)
-                }
-            }
-        }
         .alert("Error", isPresented: $showError, presenting: viewModel.error) { _ in
             Button("OK", role: .cancel) {}
         } message: { error in
@@ -194,7 +154,9 @@ struct ThreadDetailsView: View {
             do {
                 try await viewModel.createThread(
                     name: threadName,
-                    apiKey: apiKey.isEmpty ? nil : apiKey
+                    apiKey: apiKey.isEmpty ? nil : apiKey,
+                    assistantName: assistantName.isEmpty ? nil : assistantName,
+                    customInstructions: customInstructions.isEmpty ? nil : customInstructions
                 )
                 await MainActor.run {
                     dismiss()

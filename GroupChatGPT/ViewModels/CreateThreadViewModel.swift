@@ -134,7 +134,12 @@ class CreateThreadViewModel: ObservableObject {
         }
     }
 
-    func createThread(name: String, apiKey: String?) async throws {
+    func createThread(
+        name: String,
+        apiKey: String?,
+        assistantName: String? = nil,
+        customInstructions: String? = nil
+    ) async throws {
         print("CreateThreadViewModel: Starting thread creation")
 
         guard let currentUserId = Auth.auth().currentUser?.uid else {
@@ -160,7 +165,9 @@ class CreateThreadViewModel: ObservableObject {
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             participants: participantIds,
             createdBy: currentUserId,
-            apiKey: apiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+            apiKey: apiKey?.trimmingCharacters(in: .whitespacesAndNewlines),
+            assistantName: assistantName?.trimmingCharacters(in: .whitespacesAndNewlines),
+            customInstructions: customInstructions?.trimmingCharacters(in: .whitespacesAndNewlines)
         )
 
         // Save to Firestore

@@ -67,11 +67,6 @@ struct ThreadListView: View {
                     Image(systemName: "person.circle")
                 }
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Sign Out") {
-                    authService.signOut()
-                }
-            }
         }
         .sheet(isPresented: $showingCreateThread) {
             CreateThreadView()
@@ -111,32 +106,27 @@ struct ThreadRow: View {
                             AsyncImage(url: url) { phase in
                                 switch phase {
                                 case .empty:
-                                    defaultAvatar
+                                    ProfilePhotoView(image: nil, name: user.name, size: 40)
                                 case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 32, height: 32)
-                                        .clipShape(Circle())
-                                        .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                                    ProfilePhotoView(image: image, name: user.name, size: 40)
                                 case .failure(_):
-                                    defaultAvatar
+                                    ProfilePhotoView(image: nil, name: user.name, size: 40)
                                 @unknown default:
-                                    defaultAvatar
+                                    ProfilePhotoView(image: nil, name: user.name, size: 40)
                                 }
                             }
                         } else {
-                            defaultAvatar
+                            ProfilePhotoView(image: nil, name: user.name, size: 40)
                         }
                     } else {
-                        defaultAvatar
+                        ProfilePhotoView(image: nil, name: "?", size: 40)
                     }
                 }
                 if thread.participants.count > 3 {
                     Text("+\(thread.participants.count - 3)")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 40, height: 40)
                         .background(Color.gray.opacity(0.2))
                         .clipShape(Circle())
                 }
@@ -146,13 +136,6 @@ struct ThreadRow: View {
         .task {
             await loadParticipantUsers()
         }
-    }
-
-    private var defaultAvatar: some View {
-        Image(systemName: "person.circle.fill")
-            .resizable()
-            .frame(width: 32, height: 32)
-            .foregroundColor(.gray)
     }
 
     private func loadParticipantUsers() async {

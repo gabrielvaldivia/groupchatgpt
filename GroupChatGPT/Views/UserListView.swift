@@ -144,47 +144,34 @@ struct UserRow: View {
 
     var body: some View {
         HStack {
-            userAvatar
-            userInfo
-        }
-        .padding(.vertical, 4)
-    }
-
-    private var userAvatar: some View {
-        Group {
             if let url = user.profileImageURL {
                 if url.absoluteString.hasPrefix("data:") {
                     if let image = loadBase64Image(from: url.absoluteString) {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 40, height: 40)
-                            .clipShape(Circle())
+                        ProfilePhotoView(image: image, name: user.name, size: 40)
                     } else {
-                        defaultAvatar
+                        ProfilePhotoView(image: nil, name: user.name, size: 40)
                     }
                 } else {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
-                            defaultAvatar
+                            ProfilePhotoView(image: nil, name: user.name, size: 40)
                         case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 40, height: 40)
-                                .clipShape(Circle())
+                            ProfilePhotoView(image: image, name: user.name, size: 40)
                         case .failure(_):
-                            defaultAvatar
+                            ProfilePhotoView(image: nil, name: user.name, size: 40)
                         @unknown default:
-                            defaultAvatar
+                            ProfilePhotoView(image: nil, name: user.name, size: 40)
                         }
                     }
                 }
             } else {
-                defaultAvatar
+                ProfilePhotoView(image: nil, name: user.name, size: 40)
             }
+
+            userInfo
         }
+        .padding(.vertical, 4)
     }
 
     private func loadBase64Image(from dataURL: String) -> Image? {
@@ -195,14 +182,6 @@ struct UserRow: View {
             return nil
         }
         return Image(uiImage: uiImage)
-    }
-
-    private var defaultAvatar: some View {
-        Image(systemName: "person.circle.fill")
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 40, height: 40)
-            .foregroundStyle(.gray)
     }
 
     private var userInfo: some View {

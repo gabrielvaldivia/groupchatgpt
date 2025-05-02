@@ -172,6 +172,12 @@ class ProfileViewModel: ObservableObject {
             errorMessage = "Failed to save changes: \(error.localizedDescription)"
         }
     }
+
+    func removePhoto() {
+        self.displayImage = nil
+        self.imageData = nil
+        self.selectedItem = nil
+    }
 }
 
 // MARK: - UIImage Extension
