@@ -18,13 +18,26 @@ struct ChatView: View {
         VStack {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.messages) { message in
-                            MessageBubble(
-                                message: message,
-                                isFromCurrentUser: viewModel.isFromCurrentUser(message)
-                            )
-                            .id(message.messageId)
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(viewModel.messages.enumerated()), id: \.element.messageId) {
+                            index, message in
+                            let showName =
+                                index == 0
+                                || viewModel.messages[index - 1].senderId != message.senderId
+                            let topSpacing =
+                                index == 0
+                                ? 0
+                                : (viewModel.messages[index - 1].senderId == message.senderId
+                                    ? 4 : 12)
+                            VStack(spacing: 0) {
+                                Spacer().frame(height: CGFloat(topSpacing))
+                                MessageBubble(
+                                    message: message,
+                                    isFromCurrentUser: viewModel.isFromCurrentUser(message),
+                                    showSenderName: showName
+                                )
+                                .id(message.messageId)
+                            }
                         }
                     }
                     .padding()
@@ -104,6 +117,7 @@ struct ChatView: View {
 struct MessageBubble: View {
     let message: Message
     let isFromCurrentUser: Bool
+    let showSenderName: Bool
     @State private var messageHeight: CGFloat = 0
 
     var body: some View {
@@ -113,9 +127,11 @@ struct MessageBubble: View {
             }
 
             VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 4) {
-                Text(message.senderName)
-                    .font(.caption)
-                    .foregroundColor(.gray)
+                if showSenderName {
+                    Text(message.senderName)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
 
                 Text(message.text)
                     .padding(.horizontal, 12)
