@@ -90,6 +90,8 @@ struct SettingsView: View {
             do {
                 try await viewModel.updateThread(name: viewModel.threadName)
                 validateAndSaveKey()
+                viewModel.updateAssistantName(viewModel.assistantName)
+                viewModel.updateCustomInstructions(viewModel.customInstructions)
                 dismiss()
             } catch {
                 print("Error updating thread: \(error)")
