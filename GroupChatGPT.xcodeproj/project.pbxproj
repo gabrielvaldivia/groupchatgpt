@@ -11,6 +11,7 @@
 		405DB6582DC1BB17003CFE1D /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 405DB6572DC1BB17003CFE1D /* FirebaseCore */; };
 		405DB65A2DC1BB17003CFE1D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 405DB6592DC1BB17003CFE1D /* FirebaseFirestore */; };
 		405DB65D2DC1BB22003CFE1D /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = 405DB65C2DC1BB22003CFE1D /* OpenAI */; };
+		40EC1C0A2DC477E200BAE394 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 40EC1C092DC477E200BAE394 /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +62,7 @@
 			files = (
 				405DB6582DC1BB17003CFE1D /* FirebaseCore in Frameworks */,
 				405DB6562DC1BB17003CFE1D /* FirebaseAuth in Frameworks */,
+				40EC1C0A2DC477E200BAE394 /* FirebaseMessaging in Frameworks */,
 				405DB65D2DC1BB22003CFE1D /* OpenAI in Frameworks */,
 				405DB65A2DC1BB17003CFE1D /* FirebaseFirestore in Frameworks */,
 			);
@@ -127,6 +129,7 @@
 				405DB6572DC1BB17003CFE1D /* FirebaseCore */,
 				405DB6592DC1BB17003CFE1D /* FirebaseFirestore */,
 				405DB65C2DC1BB22003CFE1D /* OpenAI */,
+				40EC1C092DC477E200BAE394 /* FirebaseMessaging */,
 			);
 			productName = GroupChatGPT;
 			productReference = 4039AD312DBB0E1F0032C01D /* GroupChatGPT.app */;
@@ -619,6 +622,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 405DB65B2DC1BB22003CFE1D /* XCRemoteSwiftPackageReference "OpenAI" */;
 			productName = OpenAI;
+		};
+		40EC1C092DC477E200BAE394 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 405DB6542DC1BB17003CFE1D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

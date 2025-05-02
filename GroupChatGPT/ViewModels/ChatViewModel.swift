@@ -11,6 +11,7 @@ class ChatViewModel: ObservableObject {
     private var listenerRegistration: ListenerRegistration?
     private var threadListener: ListenerRegistration?
     private let openAIService = OpenAIService.shared
+    private let notificationService = NotificationService.shared
     private var thread: Thread
     private let authService: AuthenticationService
 
@@ -112,6 +113,23 @@ class ChatViewModel: ObservableObject {
 
                 print("Received \(newMessages.count) messages")
                 self.messages = newMessages
+
+                // Schedule notifications for new messages
+                if let currentUserId = Auth.auth().currentUser?.uid {
+                    for message in newMessages {
+                        // Only notify for messages from others
+                        if message.senderId != currentUserId {
+                            Task {
+                                await self.notificationService.scheduleMessageNotification(
+                                    threadId: self.thread.threadId,
+                                    threadName: self.thread.name,
+                                    senderName: message.senderName,
+                                    messageText: message.text
+                                )
+                            }
+                        }
+                    }
+                }
             }
     }
 

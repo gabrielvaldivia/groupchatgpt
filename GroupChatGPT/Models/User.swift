@@ -7,6 +7,8 @@ public struct User: Identifiable, Codable, Hashable {
     public var email: String?
     public var profileImageURL: URL?
     public var lastLoginDate: Date
+    public var deviceToken: String?
+    public var fcmToken: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -14,6 +16,8 @@ public struct User: Identifiable, Codable, Hashable {
         case email
         case profileImageURL
         case lastLoginDate
+        case deviceToken
+        case fcmToken
     }
 
     public init(id: String, name: String, email: String? = nil, profileImageURL: URL? = nil) {
@@ -22,6 +26,8 @@ public struct User: Identifiable, Codable, Hashable {
         self.email = email
         self.profileImageURL = profileImageURL
         self.lastLoginDate = Date()
+        self.deviceToken = nil
+        self.fcmToken = nil
     }
 
     // Computed property to ensure we always have a valid ID
@@ -59,6 +65,8 @@ public struct User: Identifiable, Codable, Hashable {
 
         // Decode optional fields
         self.email = try container.decodeIfPresent(String.self, forKey: .email)
+        self.deviceToken = try container.decodeIfPresent(String.self, forKey: .deviceToken)
+        self.fcmToken = try container.decodeIfPresent(String.self, forKey: .fcmToken)
 
         // Handle URL decoding
         if let urlString = try container.decodeIfPresent(String.self, forKey: .profileImageURL) {
@@ -82,5 +90,7 @@ public struct User: Identifiable, Codable, Hashable {
         try container.encodeIfPresent(email, forKey: .email)
         try container.encodeIfPresent(profileImageURL?.absoluteString, forKey: .profileImageURL)
         try container.encode(Timestamp(date: lastLoginDate), forKey: .lastLoginDate)
+        try container.encodeIfPresent(deviceToken, forKey: .deviceToken)
+        try container.encodeIfPresent(fcmToken, forKey: .fcmToken)
     }
 }
