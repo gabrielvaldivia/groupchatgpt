@@ -106,7 +106,8 @@ struct ThreadRow: View {
                             AsyncImage(url: url) { phase in
                                 switch phase {
                                 case .empty:
-                                    ProfilePhotoView(image: nil, name: user.name, size: 40)
+                                    ProgressView()
+                                        .frame(width: 40, height: 40)
                                 case .success(let image):
                                     ProfilePhotoView(image: image, name: user.name, size: 40)
                                 case .failure(_):
@@ -119,7 +120,8 @@ struct ThreadRow: View {
                             ProfilePhotoView(image: nil, name: user.name, size: 40)
                         }
                     } else {
-                        ProfilePhotoView(image: nil, name: "?", size: 40)
+                        ProgressView()
+                            .frame(width: 40, height: 40)
                     }
                 }
                 if thread.participants.count > 3 {
