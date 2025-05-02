@@ -20,6 +20,7 @@ let package = Package(
                 .product(name: "FirebaseFirestoreSwift", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseCore", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseMessaging", package: "firebase-ios-sdk"),
+                .product(name: "FirebaseFunctions", package: "firebase-ios-sdk"),
                 .product(name: "OpenAI", package: "OpenAI"),
             ],
             path: "GroupChatGPT"

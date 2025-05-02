@@ -1,6 +1,7 @@
 import PhotosUI
 import SwiftUI
 
+@MainActor
 struct ProfileView: View {
     @EnvironmentObject var authService: AuthenticationService
     @StateObject private var viewModel = ProfileViewModel()
@@ -11,22 +12,10 @@ struct ProfileView: View {
             Form {
                 Section {
                     VStack {
-                        PhotosPicker(selection: $viewModel.selectedItem, matching: .images) {
-                            Group {
-                                if let image = viewModel.profileImage {
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 120, height: 120)
-                                        .clipShape(Circle())
-                                } else {
-                                    Image(systemName: "person.circle.fill")
-                                        .resizable()
-                                        .frame(width: 120, height: 120)
-                                        .foregroundStyle(.gray)
-                                }
-                            }
-                        }
+                        ImagePickerView(
+                            selectedItem: $viewModel.selectedItem,
+                            displayImage: viewModel.displayImage
+                        )
                         .frame(maxWidth: .infinity)
                     }
                     .padding(.vertical)
@@ -58,6 +47,38 @@ struct ProfileView: View {
             }
             .task {
                 await viewModel.loadProfile()
+            }
+        }
+    }
+}
+
+struct ImagePickerView: View {
+    @Binding var selectedItem: PhotosPickerItem?
+    let displayImage: Image?
+
+    var body: some View {
+        PhotosPicker(selection: $selectedItem, matching: .images) {
+            ProfileImageView(image: displayImage)
+        }
+    }
+}
+
+private struct ProfileImageView: View {
+    let image: Image?
+
+    var body: some View {
+        Group {
+            if let image = image {
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 120, height: 120)
+                    .clipShape(Circle())
+            } else {
+                Image(systemName: "person.circle.fill")
+                    .resizable()
+                    .frame(width: 120, height: 120)
+                    .foregroundStyle(.gray)
             }
         }
     }

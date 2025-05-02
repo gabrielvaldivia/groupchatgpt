@@ -9,7 +9,7 @@ class ProfileViewModel: ObservableObject {
     @Published var selectedItem: PhotosPickerItem? {
         didSet { Task { await loadImage() } }
     }
-    @Published var profileImage: Image?
+    @Published private(set) var displayImage: Image?
     @Published var showError = false
     @Published var errorMessage: String?
     @Published private(set) var isLoading = false
@@ -25,6 +25,10 @@ class ProfileViewModel: ObservableObject {
 
     var isValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    func updateProfileImage(_ image: Image?) {
+        displayImage = image
     }
 
     deinit {
@@ -65,7 +69,7 @@ class ProfileViewModel: ObservableObject {
                         do {
                             let (data, _) = try await URLSession.shared.data(from: profileImageURL)
                             if let uiImage = UIImage(data: data) {
-                                self.profileImage = Image(uiImage: uiImage)
+                                self.displayImage = Image(uiImage: uiImage)
                             }
                         } catch {
                             print("Error loading profile image: \(error)")
@@ -79,38 +83,12 @@ class ProfileViewModel: ObservableObject {
 
     private func loadImage() async {
         guard let item = selectedItem else { return }
-
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else { return }
-            guard var uiImage = UIImage(data: data) else { return }
+            guard let uiImage = UIImage(data: data) else { return }
 
-            // Normalize orientation
-            if uiImage.imageOrientation != .up {
-                UIGraphicsBeginImageContextWithOptions(uiImage.size, false, uiImage.scale)
-                uiImage.draw(in: CGRect(origin: .zero, size: uiImage.size))
-                if let normalizedImage = UIGraphicsGetImageFromCurrentImageContext() {
-                    UIGraphicsEndImageContext()
-                    uiImage = normalizedImage
-                } else {
-                    UIGraphicsEndImageContext()
-                }
-            }
-
-            // First create a square crop from the center
-            let sideLength = min(uiImage.size.width, uiImage.size.height)
-            let xOffset = (uiImage.size.width - sideLength) / 2
-            let yOffset = (uiImage.size.height - sideLength) / 2
-            let cropRect = CGRect(x: xOffset, y: yOffset, width: sideLength, height: sideLength)
-
-            guard let cgImage = uiImage.cgImage?.cropping(to: cropRect) else { return }
-            let squareImage = UIImage(cgImage: cgImage)
-
-            // Then resize the square image
-            let renderer = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 400))
-            let resizedImage = renderer.image { context in
-                squareImage.draw(in: CGRect(origin: .zero, size: CGSize(width: 400, height: 400)))
-            }
-
+            // Normalize orientation and resize
+            let resizedImage = await normalizeAndResizeImage(uiImage)
             guard let imageData = resizedImage.jpegData(compressionQuality: 0.8) else { return }
             guard imageData.count < 900 * 1024 else {
                 showError = true
@@ -118,11 +96,47 @@ class ProfileViewModel: ObservableObject {
                 return
             }
 
-            self.imageData = imageData
-            self.profileImage = Image(uiImage: resizedImage)
+            await MainActor.run {
+                self.imageData = imageData
+                self.displayImage = Image(uiImage: resizedImage)
+            }
         } catch {
-            showError = true
-            errorMessage = "Failed to load image: \(error.localizedDescription)"
+            await MainActor.run {
+                showError = true
+                errorMessage = "Failed to load image: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func normalizeAndResizeImage(_ uiImage: UIImage) async -> UIImage {
+        // First normalize orientation
+        var normalizedImage = uiImage
+        if uiImage.imageOrientation != .up {
+            UIGraphicsBeginImageContextWithOptions(uiImage.size, false, uiImage.scale)
+            uiImage.draw(in: CGRect(origin: .zero, size: uiImage.size))
+            if let newImage = UIGraphicsGetImageFromCurrentImageContext() {
+                UIGraphicsEndImageContext()
+                normalizedImage = newImage
+            } else {
+                UIGraphicsEndImageContext()
+            }
+        }
+
+        // Create square crop
+        let sideLength = min(normalizedImage.size.width, normalizedImage.size.height)
+        let xOffset = (normalizedImage.size.width - sideLength) / 2
+        let yOffset = (normalizedImage.size.height - sideLength) / 2
+        let cropRect = CGRect(x: xOffset, y: yOffset, width: sideLength, height: sideLength)
+
+        guard let cgImage = normalizedImage.cgImage?.cropping(to: cropRect) else {
+            return normalizedImage
+        }
+        let squareImage = UIImage(cgImage: cgImage)
+
+        // Resize to final dimensions
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 400))
+        return renderer.image { context in
+            squareImage.draw(in: CGRect(origin: .zero, size: CGSize(width: 400, height: 400)))
         }
     }
 
@@ -138,7 +152,7 @@ class ProfileViewModel: ObservableObject {
                 profileImageURL: nil
             )
 
-            var userData = try JSONEncoder().encode(user)
+            let userData = try JSONEncoder().encode(user)
             var dict = try JSONSerialization.jsonObject(with: userData) as? [String: Any] ?? [:]
 
             // Add the profile image if it was updated

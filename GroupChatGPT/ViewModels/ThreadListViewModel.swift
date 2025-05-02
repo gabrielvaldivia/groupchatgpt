@@ -97,15 +97,13 @@ class ThreadListViewModel: ObservableObject {
         )
 
         let threadRef = db.collection("threads").document()
-        try await threadRef.setData(from: thread)
+        try threadRef.setData(from: thread)
         print("ThreadListViewModel: Thread created with ID: \(threadRef.documentID)")
 
         // Manually add the thread to our local array to ensure immediate UI update
         var newThread = thread
         newThread.id = threadRef.documentID
-        await MainActor.run {
-            threads.insert(newThread, at: 0)  // Add to the beginning since it's newest
-        }
+        threads.insert(newThread, at: 0)  // Add to the beginning since it's newest
     }
 
     func deleteThread(_ thread: Thread) async throws {

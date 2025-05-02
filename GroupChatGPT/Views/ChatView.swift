@@ -91,6 +91,13 @@ struct ChatView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView(chatId: thread.threadId)
         }
+        .onAppear {
+            NotificationCenter.default.post(name: NSNotification.Name("ViewDidAppear"), object: nil)
+        }
+        .onDisappear {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ViewDidDisappear"), object: nil)
+        }
     }
 }
 

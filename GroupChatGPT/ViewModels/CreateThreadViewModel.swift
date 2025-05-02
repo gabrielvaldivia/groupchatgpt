@@ -79,18 +79,13 @@ class CreateThreadViewModel: ObservableObject {
 
                 self.availableUsers = snapshot.documents.compactMap { document -> User? in
                     do {
-                        // First try to decode the document
-                        if var user = try? document.data(as: User.self) {
-                            // Always use the document ID as the user ID
-                            user.id = document.documentID
-
-                            // Skip the current user
-                            if user.userId != currentUserId {
-                                print(
-                                    "CreateThreadViewModel: Successfully loaded user \(user.name) with ID \(user.userId)"
-                                )
-                                return user
-                            }
+                        let user = try document.data(as: User.self)
+                        // Skip the current user
+                        if user.userId != currentUserId {
+                            print(
+                                "CreateThreadViewModel: Successfully loaded user \(user.name) with ID \(user.userId)"
+                            )
+                            return user
                         }
                         return nil
                     } catch {
@@ -169,7 +164,7 @@ class CreateThreadViewModel: ObservableObject {
         )
 
         // Save to Firestore
-        let threadRef = try await db.collection("threads").document()
+        let threadRef = db.collection("threads").document()
         try threadRef.setData(from: thread)
         print("CreateThreadViewModel: Thread created successfully")
     }

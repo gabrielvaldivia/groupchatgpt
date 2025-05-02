@@ -16,6 +16,7 @@ public class AuthenticationService: NSObject, ObservableObject {
     private var signInContinuation: CheckedContinuation<Void, Error>?
     private var isSigningIn = false
     private var userListener: ListenerRegistration?
+    private var authStateListener: AuthStateDidChangeListenerHandle?
 
     private override init() {
         super.init()
@@ -23,7 +24,7 @@ public class AuthenticationService: NSObject, ObservableObject {
     }
 
     private func setupUserListener() {
-        Auth.auth().addStateDidChangeListener { [weak self] _, user in
+        authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self = self else { return }
 
             if let userId = user?.uid {
