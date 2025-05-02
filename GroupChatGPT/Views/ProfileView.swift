@@ -10,23 +10,24 @@ struct ProfileView: View {
         NavigationView {
             Form {
                 Section {
-                    HStack {
-                        Spacer()
+                    VStack {
                         PhotosPicker(selection: $viewModel.selectedItem, matching: .images) {
-                            if let image = viewModel.profileImage {
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 100, height: 100)
-                                    .clipShape(Circle())
-                            } else {
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                                    .frame(width: 100, height: 100)
-                                    .foregroundStyle(.gray)
+                            Group {
+                                if let image = viewModel.profileImage {
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 120, height: 120)
+                                        .clipShape(Circle())
+                                } else {
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .frame(width: 120, height: 120)
+                                        .foregroundStyle(.gray)
+                                }
                             }
                         }
-                        Spacer()
+                        .frame(maxWidth: .infinity)
                     }
                     .padding(.vertical)
 

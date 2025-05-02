@@ -92,20 +92,25 @@ struct UserSelectionRow: View {
 
     var body: some View {
         HStack {
-            if let url = user.profileImageURL {
-                AsyncImage(url: url) { image in
-                    image.resizable()
-                } placeholder: {
+            Group {
+                if let url = user.profileImageURL {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
+                    } placeholder: {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .frame(width: 40, height: 40)
+                            .foregroundStyle(.gray)
+                    }
+                } else {
                     Image(systemName: "person.circle.fill")
+                        .resizable()
+                        .frame(width: 40, height: 40)
                         .foregroundStyle(.gray)
                 }
-                .frame(width: 40, height: 40)
-                .clipShape(Circle())
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .frame(width: 40, height: 40)
-                    .foregroundStyle(.gray)
             }
 
             Text(user.name)

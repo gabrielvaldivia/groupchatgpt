@@ -157,22 +157,29 @@ struct UserRow: View {
                     if let image = loadBase64Image(from: url.absoluteString) {
                         image
                             .resizable()
-                            .scaledToFill()
+                            .aspectRatio(contentMode: .fill)
                             .frame(width: 40, height: 40)
                             .clipShape(Circle())
                     } else {
                         defaultAvatar
                     }
                 } else {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        defaultAvatar
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            defaultAvatar
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 40, height: 40)
+                                .clipShape(Circle())
+                        case .failure(_):
+                            defaultAvatar
+                        @unknown default:
+                            defaultAvatar
+                        }
                     }
-                    .frame(width: 40, height: 40)
-                    .clipShape(Circle())
                 }
             } else {
                 defaultAvatar
@@ -193,6 +200,7 @@ struct UserRow: View {
     private var defaultAvatar: some View {
         Image(systemName: "person.circle.fill")
             .resizable()
+            .aspectRatio(contentMode: .fit)
             .frame(width: 40, height: 40)
             .foregroundStyle(.gray)
     }
