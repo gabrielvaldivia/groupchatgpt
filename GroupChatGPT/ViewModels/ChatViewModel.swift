@@ -11,7 +11,7 @@ class ChatViewModel: ObservableObject {
     private var listenerRegistration: ListenerRegistration?
     private var threadListener: ListenerRegistration?
     private let openAIService = OpenAIService.shared
-    private let thread: Thread
+    private var thread: Thread
     private let authService: AuthenticationService
 
     init(thread: Thread) {
@@ -51,10 +51,21 @@ class ChatViewModel: ObservableObject {
                     return
                 }
 
+                // Update thread reference with latest data
+                self.thread = updatedThread
+                self.thread.id = snapshot.documentID
+
                 // Update OpenAI configuration if API key changed
                 if let apiKey = updatedThread.apiKey {
                     print("Updating API key configuration")
                     self.openAIService.configure(chatId: self.thread.threadId, apiKey: apiKey)
+                }
+
+                // Update OpenAI assistant name if changed
+                if let assistantName = updatedThread.assistantName {
+                    print("Updating assistant name configuration")
+                    self.openAIService.configureAssistantName(
+                        chatId: self.thread.threadId, name: assistantName)
                 }
             }
     }
@@ -139,7 +150,7 @@ class ChatViewModel: ObservableObject {
                     let aiMessage = Message(
                         messageId: UUID().uuidString,
                         senderId: "ai",
-                        senderName: "Assistant",
+                        senderName: thread.assistantName ?? "ChatGPT",
                         text: aiResponse,
                         timestamp: Date()
                     )
