@@ -18,10 +18,15 @@ class ChatViewModel: ObservableObject {
         self.thread = thread
         self.authService = AuthenticationService.shared
 
-        // Configure OpenAI with thread's API key
+        // Configure OpenAI with thread's API key and settings
         if let apiKey = thread.apiKey {
             openAIService.configure(chatId: thread.threadId, apiKey: apiKey)
         }
+        if let assistantName = thread.assistantName {
+            openAIService.configureAssistantName(chatId: thread.threadId, name: assistantName)
+        }
+        openAIService.configureCustomInstructions(
+            chatId: thread.threadId, instructions: thread.customInstructions)
 
         setupThreadListener()
         setupMessagesListener()
@@ -55,18 +60,18 @@ class ChatViewModel: ObservableObject {
                 self.thread = updatedThread
                 self.thread.id = snapshot.documentID
 
-                // Update OpenAI configuration if API key changed
+                // Update OpenAI configuration if settings changed
                 if let apiKey = updatedThread.apiKey {
                     print("Updating API key configuration")
                     self.openAIService.configure(chatId: self.thread.threadId, apiKey: apiKey)
                 }
-
-                // Update OpenAI assistant name if changed
                 if let assistantName = updatedThread.assistantName {
                     print("Updating assistant name configuration")
                     self.openAIService.configureAssistantName(
                         chatId: self.thread.threadId, name: assistantName)
                 }
+                self.openAIService.configureCustomInstructions(
+                    chatId: self.thread.threadId, instructions: updatedThread.customInstructions)
             }
     }
 

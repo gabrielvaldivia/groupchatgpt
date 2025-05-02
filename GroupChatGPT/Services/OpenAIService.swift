@@ -1,3 +1,4 @@
+import FirebaseFirestore
 import Foundation
 
 enum OpenAIError: Error {
@@ -23,6 +24,8 @@ class OpenAIService {
     private var assistantNames: [String: String] = [:]  // chatId: assistantName
     private let defaultAssistantName = "ChatGPT"
 
+    private var customInstructions: [String: String] = [:]  // chatId: instructions
+
     private init() {
         let config = URLSessionConfiguration.ephemeral
         config.waitsForConnectivity = true
@@ -35,6 +38,15 @@ class OpenAIService {
 
     func configure(chatId: String, apiKey: String) {
         apiKeys[chatId] = apiKey
+    }
+
+    func configureCustomInstructions(chatId: String, instructions: String?) {
+        if let instructions = instructions {
+            customInstructions[chatId] = instructions
+        } else {
+            customInstructions.removeValue(forKey: chatId)
+        }
+        clearConversationHistory(for: chatId)
     }
 
     func getAPIKey(for chatId: String) -> String? {
@@ -70,15 +82,24 @@ class OpenAIService {
     private func getOrCreateHistory(for chatId: String) -> [[String: String]] {
         if conversationHistories[chatId] == nil {
             let assistantName = getAssistantName(for: chatId)
+            let instructions = customInstructions[chatId]
+
+            var systemMessage = """
+                You are \(assistantName), a helpful assistant in a group chat. Keep your responses concise and conversational.
+                You should remember and reference information from previous messages in the conversation.
+                Each message includes the sender's name in the format "Name: message".
+                When responding, acknowledge the user by their name if it was mentioned in previous messages.
+                You MUST strictly follow these additional instructions for ALL your responses:
+                """
+
+            if let instructions = instructions, !instructions.isEmpty {
+                systemMessage += "\n\(instructions)"
+            }
+
             conversationHistories[chatId] = [
                 [
                     "role": "system",
-                    "content": """
-                    You are \(assistantName), a helpful assistant in a group chat. Keep your responses concise and conversational.
-                    You should remember and reference information from previous messages in the conversation.
-                    Each message includes the sender's name in the format "Name: message".
-                    When responding, acknowledge the user by their name if it was mentioned in previous messages.
-                    """,
+                    "content": systemMessage,
                 ]
             ]
         }
@@ -188,13 +209,24 @@ class OpenAIService {
 
     func clearConversationHistory(for chatId: String) {
         let assistantName = getAssistantName(for: chatId)
+        let instructions = customInstructions[chatId]
+
+        var systemMessage = """
+            You are \(assistantName), a helpful assistant in a group chat. Keep your responses concise and conversational.
+            You should remember and reference information from previous messages in the conversation.
+            Each message includes the sender's name in the format "Name: message".
+            When responding, acknowledge the user by their name if it was mentioned in previous messages.
+            You MUST strictly follow these additional instructions for ALL your responses:
+            """
+
+        if let instructions = instructions, !instructions.isEmpty {
+            systemMessage += "\n\(instructions)"
+        }
+
         conversationHistories[chatId] = [
             [
                 "role": "system",
-                "content": """
-                You are \(assistantName), a helpful assistant in a group chat. Keep your responses concise and conversational. 
-                You should remember context from previous messages in the conversation.
-                """,
+                "content": systemMessage,
             ]
         ]
     }

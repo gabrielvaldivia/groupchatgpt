@@ -9,6 +9,7 @@ class SettingsViewModel: ObservableObject {
     @Published var isDeleting = false
     @Published var threadName: String = ""
     @Published var assistantName: String = ""
+    @Published var customInstructions: String = ""
     @Published var isUpdating = false
     private let chatId: String
     private let openAIService = OpenAIService.shared
@@ -21,6 +22,7 @@ class SettingsViewModel: ObservableObject {
         self.apiKey = ""
         self.threadName = ""
         self.assistantName = ""
+        self.customInstructions = ""
 
         // Fetch initial thread data
         fetchInitialThreadData()
@@ -40,6 +42,7 @@ class SettingsViewModel: ObservableObject {
                 self.threadName = thread.name
                 self.apiKey = thread.apiKey ?? ""
                 self.assistantName = thread.assistantName ?? ""
+                self.customInstructions = thread.customInstructions ?? ""
             }
         }
     }
@@ -71,6 +74,7 @@ class SettingsViewModel: ObservableObject {
                 self.threadName = thread.name
                 self.apiKey = thread.apiKey ?? ""
                 self.assistantName = thread.assistantName ?? ""
+                self.customInstructions = thread.customInstructions ?? ""
             }
     }
 
@@ -167,6 +171,25 @@ class SettingsViewModel: ObservableObject {
                 openAIService.configureAssistantName(chatId: chatId, name: name)
             } catch {
                 print("Error updating assistant name: \(error)")
+            }
+        }
+    }
+
+    func updateCustomInstructions(_ instructions: String) {
+        Task {
+            do {
+                let trimmedInstructions = instructions.trimmingCharacters(
+                    in: .whitespacesAndNewlines)
+                try await db.collection("threads").document(chatId).setData(
+                    [
+                        "customInstructions": trimmedInstructions
+                    ], merge: true)
+
+                // Update OpenAI service with new instructions
+                openAIService.configureCustomInstructions(
+                    chatId: chatId, instructions: trimmedInstructions)
+            } catch {
+                print("Error updating custom instructions: \(error)")
             }
         }
     }

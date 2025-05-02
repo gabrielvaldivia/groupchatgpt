@@ -65,6 +65,20 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    TextEditor(text: $viewModel.customInstructions)
+                        .frame(minHeight: 100)
+                        .onChange(of: viewModel.customInstructions) { oldValue, newValue in
+                            viewModel.updateCustomInstructions(newValue)
+                        }
+                } header: {
+                    Text("CUSTOM INSTRUCTIONS")
+                } footer: {
+                    Text(
+                        "Add custom instructions to guide how the AI assistant should behave and respond in this chat."
+                    )
+                }
+
+                Section {
                     Button(role: .destructive) {
                         showingClearConfirmation = true
                     } label: {
