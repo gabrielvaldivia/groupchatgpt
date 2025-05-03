@@ -246,6 +246,39 @@ class ChatViewModel: ObservableObject {
             }
     }
 
+    func containsAssistantName(_ text: String, assistantName: String) -> Bool {
+        let pattern = "(?i)\\b" + NSRegularExpression.escapedPattern(for: assistantName) + "\\b"
+        let regex = try? NSRegularExpression(pattern: pattern)
+        let range = NSRange(text.startIndex..., in: text)
+        return regex?.firstMatch(in: text, options: [], range: range) != nil
+    }
+
+    func shouldAssistantRespond(to message: Message) -> Bool {
+        let text = message.text
+        let assistantName = thread.assistantName ?? "ChatGPT"
+        let previousMessage = messages.last
+
+        // 1. Assistant name appears anywhere in the message (as a word)
+        if containsAssistantName(text, assistantName: assistantName) {
+            return true
+        }
+        // 2. Previous message was from assistant and this is a reply
+        if let prev = previousMessage,
+            prev.senderName.caseInsensitiveCompare(assistantName) == .orderedSame
+        {
+            return true
+        }
+        // 3. Question and assistant was last to speak
+        if text.trimmingCharacters(in: .whitespaces).hasSuffix("?") {
+            if let prev = previousMessage,
+                prev.senderName.caseInsensitiveCompare(assistantName) == .orderedSame
+            {
+                return true
+            }
+        }
+        return false
+    }
+
     func sendMessage() {
         guard !newMessageText.isEmpty, let currentUser = authService.currentUser else {
             print("DEBUG: Cannot send message - no current user")
@@ -278,8 +311,8 @@ class ChatViewModel: ObservableObject {
                     .document(message.messageId)
                     .setData(from: message)
 
-                // Generate AI response if API key is configured
-                if thread.apiKey != nil {
+                // Generate AI response if API key is configured and context says to respond
+                if thread.apiKey != nil, shouldAssistantRespond(to: message) {
                     let aiResponse = try await openAIService.generateResponse(
                         to: "\(message.senderName): \(message.text)", chatId: thread.threadId)
 

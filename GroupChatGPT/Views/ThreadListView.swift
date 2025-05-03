@@ -109,15 +109,23 @@ struct ThreadRow: View {
                                     ProgressView()
                                         .frame(width: 40, height: 40)
                                 case .success(let image):
-                                    ProfilePhotoView(image: image, name: user.name, size: 40)
+                                    ProfilePhotoView(
+                                        image: image, name: user.name, size: 40,
+                                        placeholderColor: user.placeholderColor)
                                 case .failure(_):
-                                    ProfilePhotoView(image: nil, name: user.name, size: 40)
+                                    ProfilePhotoView(
+                                        image: nil, name: user.name, size: 40,
+                                        placeholderColor: user.placeholderColor)
                                 @unknown default:
-                                    ProfilePhotoView(image: nil, name: user.name, size: 40)
+                                    ProfilePhotoView(
+                                        image: nil, name: user.name, size: 40,
+                                        placeholderColor: user.placeholderColor)
                                 }
                             }
                         } else {
-                            ProfilePhotoView(image: nil, name: user.name, size: 40)
+                            ProfilePhotoView(
+                                image: nil, name: user.name, size: 40,
+                                placeholderColor: user.placeholderColor)
                         }
                     } else {
                         ProgressView()

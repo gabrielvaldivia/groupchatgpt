@@ -120,6 +120,11 @@ struct MessageBubble: View {
     let showSenderName: Bool
     @State private var messageHeight: CGFloat = 0
 
+    private func processMessageText(_ text: String) -> String {
+        return text.replacingOccurrences(
+            of: "@\\[assistant\\]", with: "**@[assistant]**", options: .regularExpression)
+    }
+
     var body: some View {
         HStack {
             if isFromCurrentUser {
@@ -133,7 +138,7 @@ struct MessageBubble: View {
                         .foregroundColor(.gray)
                 }
 
-                Text(message.text)
+                Text(.init(processMessageText(message.text)))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(

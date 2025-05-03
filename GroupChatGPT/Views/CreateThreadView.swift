@@ -94,12 +94,17 @@ struct UserSelectionRow: View {
         HStack {
             if let url = user.profileImageURL {
                 AsyncImage(url: url) { image in
-                    ProfilePhotoView(image: image, name: user.name, size: 40)
+                    ProfilePhotoView(
+                        image: image, name: user.name, size: 40,
+                        placeholderColor: user.placeholderColor)
                 } placeholder: {
-                    ProfilePhotoView(image: nil, name: user.name, size: 40)
+                    ProfilePhotoView(
+                        image: nil, name: user.name, size: 40,
+                        placeholderColor: user.placeholderColor)
                 }
             } else {
-                ProfilePhotoView(image: nil, name: user.name, size: 40)
+                ProfilePhotoView(
+                    image: nil, name: user.name, size: 40, placeholderColor: user.placeholderColor)
             }
 
             Text(user.name)

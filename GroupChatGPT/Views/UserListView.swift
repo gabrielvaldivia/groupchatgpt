@@ -147,26 +147,39 @@ struct UserRow: View {
             if let url = user.profileImageURL {
                 if url.absoluteString.hasPrefix("data:") {
                     if let image = loadBase64Image(from: url.absoluteString) {
-                        ProfilePhotoView(image: image, name: user.name, size: 40)
+                        ProfilePhotoView(
+                            image: image, name: user.name, size: 40,
+                            placeholderColor: user.placeholderColor)
                     } else {
-                        ProfilePhotoView(image: nil, name: user.name, size: 40)
+                        ProfilePhotoView(
+                            image: nil, name: user.name, size: 40,
+                            placeholderColor: user.placeholderColor)
                     }
                 } else {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
-                            ProfilePhotoView(image: nil, name: user.name, size: 40)
+                            ProfilePhotoView(
+                                image: nil, name: user.name, size: 40,
+                                placeholderColor: user.placeholderColor)
                         case .success(let image):
-                            ProfilePhotoView(image: image, name: user.name, size: 40)
+                            ProfilePhotoView(
+                                image: image, name: user.name, size: 40,
+                                placeholderColor: user.placeholderColor)
                         case .failure(_):
-                            ProfilePhotoView(image: nil, name: user.name, size: 40)
+                            ProfilePhotoView(
+                                image: nil, name: user.name, size: 40,
+                                placeholderColor: user.placeholderColor)
                         @unknown default:
-                            ProfilePhotoView(image: nil, name: user.name, size: 40)
+                            ProfilePhotoView(
+                                image: nil, name: user.name, size: 40,
+                                placeholderColor: user.placeholderColor)
                         }
                     }
                 }
             } else {
-                ProfilePhotoView(image: nil, name: user.name, size: 40)
+                ProfilePhotoView(
+                    image: nil, name: user.name, size: 40, placeholderColor: user.placeholderColor)
             }
 
             userInfo

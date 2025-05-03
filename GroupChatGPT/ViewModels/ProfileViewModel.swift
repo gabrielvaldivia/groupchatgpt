@@ -13,14 +13,17 @@ class ProfileViewModel: ObservableObject {
     @Published var showError = false
     @Published var errorMessage: String?
     @Published private(set) var isLoading = false
+    @Published var placeholderColor: String?
 
     private var originalName: String = ""
     private var imageData: Data?
     private let db = Firestore.firestore()
     private var userListener: ListenerRegistration?
+    private var isSaving = false
+    private var hasRemovedPhoto = false
 
     var isEdited: Bool {
-        name != originalName || imageData != nil
+        name != originalName || imageData != nil || hasRemovedPhoto
     }
 
     var isValid: Bool {
@@ -37,7 +40,10 @@ class ProfileViewModel: ObservableObject {
 
     func loadProfile() async {
         guard let userId = Auth.auth().currentUser?.uid else { return }
+        if isSaving { return }
+
         isLoading = true
+        hasRemovedPhoto = false
 
         // Remove any existing listener
         userListener?.remove()
@@ -46,6 +52,7 @@ class ProfileViewModel: ObservableObject {
         userListener = db.collection("users").document(userId)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
+                if self.isSaving { return }
 
                 if let error = error {
                     self.showError = true
@@ -62,6 +69,7 @@ class ProfileViewModel: ObservableObject {
                 // Update the UI
                 self.name = user.name
                 self.originalName = user.name
+                self.placeholderColor = user.placeholderColor
 
                 // Load profile image if it exists
                 if let profileImageURL = user.profileImageURL {
@@ -75,6 +83,8 @@ class ProfileViewModel: ObservableObject {
                             print("Error loading profile image: \(error)")
                         }
                     }
+                } else {
+                    self.displayImage = nil
                 }
 
                 self.isLoading = false
@@ -142,31 +152,38 @@ class ProfileViewModel: ObservableObject {
 
     func saveChanges() async {
         guard let userId = Auth.auth().currentUser?.uid else { return }
+        isSaving = true
+        defer {
+            isSaving = false
+            hasRemovedPhoto = false
+        }
 
         do {
-            // Create a complete user object with all required fields
-            let user = User(
-                id: userId,
-                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                email: nil,
-                profileImageURL: nil
-            )
-
-            let userData = try JSONEncoder().encode(user)
-            var dict = try JSONSerialization.jsonObject(with: userData) as? [String: Any] ?? [:]
-
-            // Add the profile image if it was updated
-            if let imageData = imageData {
-                let base64String = imageData.base64EncodedString()
-                let imageURLString = "data:image/jpeg;base64,\(base64String)"
-                dict["profileImageURL"] = imageURLString
+            // First update the name if it changed
+            if name != originalName {
+                try await db.collection("users").document(userId).updateData([
+                    "name": name.trimmingCharacters(in: .whitespacesAndNewlines)
+                ])
+                originalName = name
             }
 
-            // Always use setData to ensure all required fields are present
-            try await db.collection("users").document(userId).setData(dict, merge: true)
+            // Then handle the profile image
+            if let imageData = imageData {
+                // New image was added
+                let base64String = imageData.base64EncodedString()
+                let imageURLString = "data:image/jpeg;base64,\(base64String)"
+                try await db.collection("users").document(userId).updateData([
+                    "profileImageURL": imageURLString
+                ])
+            } else if hasRemovedPhoto {
+                // Photo was removed
+                try await db.collection("users").document(userId).updateData([
+                    "profileImageURL": FieldValue.delete()
+                ])
+            }
 
-            // Update original name to reflect the saved state
-            originalName = name
+            // Clear image data after successful save
+            self.imageData = nil
         } catch {
             showError = true
             errorMessage = "Failed to save changes: \(error.localizedDescription)"
@@ -177,6 +194,13 @@ class ProfileViewModel: ObservableObject {
         self.displayImage = nil
         self.imageData = nil
         self.selectedItem = nil
+        self.hasRemovedPhoto = true
+    }
+
+    func resetState() {
+        hasRemovedPhoto = false
+        imageData = nil
+        selectedItem = nil
     }
 }
 

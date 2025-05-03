@@ -9,6 +9,7 @@ public struct User: Identifiable, Codable, Hashable {
     public var lastLoginDate: Date
     public var deviceToken: String?
     public var fcmToken: String?
+    public var placeholderColor: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -18,6 +19,7 @@ public struct User: Identifiable, Codable, Hashable {
         case lastLoginDate
         case deviceToken
         case fcmToken
+        case placeholderColor
     }
 
     public init(id: String, name: String, email: String? = nil, profileImageURL: URL? = nil) {
@@ -28,6 +30,20 @@ public struct User: Identifiable, Codable, Hashable {
         self.lastLoginDate = Date()
         self.deviceToken = nil
         self.fcmToken = nil
+        self.placeholderColor = Self.generatePlaceholderColor(for: name)
+    }
+
+    private static func generatePlaceholderColor(for name: String) -> String {
+        let colors: [String] = [
+            "red", "orange", "yellow", "green", "blue", "purple", "pink", "indigo",
+        ]
+
+        var hash = 0
+        for char in name.utf8 {
+            hash = Int(char) &+ (hash << 6) &+ (hash << 16) &- hash
+        }
+
+        return colors[abs(hash) % colors.count]
     }
 
     // Computed property to ensure we always have a valid ID
@@ -92,5 +108,6 @@ public struct User: Identifiable, Codable, Hashable {
         try container.encode(Timestamp(date: lastLoginDate), forKey: .lastLoginDate)
         try container.encodeIfPresent(deviceToken, forKey: .deviceToken)
         try container.encodeIfPresent(fcmToken, forKey: .fcmToken)
+        try container.encodeIfPresent(placeholderColor, forKey: .placeholderColor)
     }
 }

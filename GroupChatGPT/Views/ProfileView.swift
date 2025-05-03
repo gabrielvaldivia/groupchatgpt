@@ -7,6 +7,7 @@ struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var showPhotoPicker = false
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         NavigationView {
@@ -18,7 +19,10 @@ struct ProfileView: View {
                     // Profile photo with floating trash button
                     ZStack(alignment: .bottomTrailing) {
                         ProfilePhotoView(
-                            image: viewModel.displayImage, name: viewModel.name, size: 120
+                            image: viewModel.displayImage,
+                            name: viewModel.name,
+                            size: 120,
+                            placeholderColor: viewModel.placeholderColor
                         )
                         .padding(.top, 16)
                         .onTapGesture { showPhotoPicker = true }
@@ -61,9 +65,14 @@ struct ProfileView: View {
                                 .autocorrectionDisabled()
                                 .font(.body)
                                 .padding(.horizontal, 12)
+                                .background(
+                                    colorScheme == .dark
+                                        ? Color(.secondarySystemBackground) : .white)
                         }
                         .frame(height: 44)
-                        .background(Color.white)
+                        .background(
+                            colorScheme == .dark ? Color(.secondarySystemBackground) : .white
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                     .padding(.horizontal)
@@ -87,6 +96,7 @@ struct ProfileView: View {
                             if viewModel.isEdited {
                                 await viewModel.saveChanges()
                             }
+                            viewModel.resetState()
                             dismiss()
                         }
                     }

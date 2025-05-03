@@ -10,7 +10,8 @@ struct SignInView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Welcome to GroupChat")
+            Spacer()
+            Text("Hola")
                 .font(.largeTitle)
                 .bold()
 
