@@ -41,7 +41,7 @@ class SettingsViewModel: ObservableObject {
             Task { @MainActor in
                 self.threadName = thread.name
                 self.apiKey = thread.apiKey ?? ""
-                self.assistantName = thread.assistantName ?? ""
+                self.assistantName = thread.assistantName ?? "ChatGPT"
                 self.customInstructions = thread.customInstructions ?? ""
             }
         }

@@ -138,6 +138,7 @@ struct ThreadDetailsView: View {
             showDangerZone: false,
             onClearAPIKey: { apiKey = "" },
             onSave: createThread,
+            onDeleteThread: {},
             isSaving: viewModel.isCreatingThread,
             isSaveDisabled: threadName.isEmpty
         )

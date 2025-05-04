@@ -7,6 +7,7 @@ struct SignInView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var showError = false
     @State private var isSigningIn = false
+    @State private var hasRequestedSignIn = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -23,18 +24,31 @@ struct SignInView: View {
 
             SignInWithAppleButton(
                 onRequest: { request in
+                    print("[SignInView] Apple Sign In requested")
+                    guard !hasRequestedSignIn else {
+                        print("[SignInView] Sign in already requested, ignoring")
+                        return
+                    }
+                    hasRequestedSignIn = true
                     request.requestedScopes = [.fullName, .email]
                 },
                 onCompletion: { result in
-                    guard !isSigningIn else { return }
+                    print("[SignInView] Apple Sign In completion handler called")
+                    guard !isSigningIn else {
+                        print("[SignInView] Already signing in, ignoring duplicate request")
+                        return
+                    }
                     isSigningIn = true
 
                     Task {
                         do {
+                            print("[SignInView] Starting sign in process")
                             try await authService.handleSignInWithAppleRequest()
+                            print("[SignInView] Sign in completed successfully")
                         } catch {
-                            print("Sign in failed: \(error.localizedDescription)")
+                            print("[SignInView] Sign in failed: \(error.localizedDescription)")
                             showError = true
+                            hasRequestedSignIn = false
                         }
                         isSigningIn = false
                     }
@@ -51,7 +65,9 @@ struct SignInView: View {
         }
         .padding()
         .alert("Sign In Failed", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
+            Button("OK", role: .cancel) {
+                hasRequestedSignIn = false
+            }
         } message: {
             Text("Please try again.")
         }

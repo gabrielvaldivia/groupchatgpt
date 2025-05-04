@@ -8,8 +8,10 @@ struct ThreadSettingsForm: View {
     let showDangerZone: Bool
     let onClearAPIKey: () -> Void
     let onSave: () -> Void
+    let onDeleteThread: () -> Void
     let isSaving: Bool
     let isSaveDisabled: Bool
+    @State private var isDeleting = false
 
     var body: some View {
         Form {
@@ -81,11 +83,12 @@ struct ThreadSettingsForm: View {
                     }
 
                     Button(role: .destructive) {
-                        // Handle delete thread
+                        isDeleting = true
+                        onDeleteThread()
                     } label: {
                         HStack {
                             Text("Delete Thread")
-                            if false {  // Add state for deleting
+                            if isDeleting {
                                 Spacer()
                                 ProgressView()
                             }

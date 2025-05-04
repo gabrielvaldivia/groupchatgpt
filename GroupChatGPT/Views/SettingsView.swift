@@ -25,6 +25,9 @@ struct SettingsView: View {
                 showDangerZone: true,
                 onClearAPIKey: viewModel.clearAPIKey,
                 onSave: saveChanges,
+                onDeleteThread: {
+                    showingDeleteConfirmation = true
+                },
                 isSaving: viewModel.isUpdating,
                 isSaveDisabled: viewModel.threadName.isEmpty
             )
