@@ -11,7 +11,7 @@ struct CreateThreadView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ParticipantSelectionView(viewModel: viewModel)
-                .navigationTitle("Select Participants")
+                .navigationTitle("Add Participants")
                 .navigationDestination(for: String.self) { _ in
                     ThreadDetailsView(
                         threadName: $threadName,
@@ -75,6 +75,7 @@ struct ParticipantSelectionView: View {
                 }
             }
             .searchable(text: $viewModel.searchText, prompt: "Search")
+            .listStyle(.plain)
             .overlay(alignment: .bottom) {
                 if !viewModel.selectedUsers.isEmpty {
                     Text(
