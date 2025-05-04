@@ -43,7 +43,36 @@ struct ThreadListView: View {
                 Button {
                     showingProfile = true
                 } label: {
-                    Image(systemName: "person.circle")
+                    if let user = authService.currentUser {
+                        if let url = user.profileImageURL {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProfilePhotoView(
+                                        image: nil, name: user.name, size: 32,
+                                        placeholderColor: user.placeholderColor)
+                                case .success(let image):
+                                    ProfilePhotoView(
+                                        image: image, name: user.name, size: 32,
+                                        placeholderColor: user.placeholderColor)
+                                case .failure(_):
+                                    ProfilePhotoView(
+                                        image: nil, name: user.name, size: 32,
+                                        placeholderColor: user.placeholderColor)
+                                @unknown default:
+                                    ProfilePhotoView(
+                                        image: nil, name: user.name, size: 32,
+                                        placeholderColor: user.placeholderColor)
+                                }
+                            }
+                        } else {
+                            ProfilePhotoView(
+                                image: nil, name: user.name, size: 32,
+                                placeholderColor: user.placeholderColor)
+                        }
+                    } else {
+                        Image(systemName: "person.circle")
+                    }
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
