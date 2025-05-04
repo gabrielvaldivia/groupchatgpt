@@ -111,21 +111,41 @@ struct ThreadRow: View {
                                 case .success(let image):
                                     ProfilePhotoView(
                                         image: image, name: user.name, size: 40,
-                                        placeholderColor: user.placeholderColor)
+                                        placeholderColor: user.placeholderColor
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white, lineWidth: 2)
+                                    )
                                 case .failure(_):
                                     ProfilePhotoView(
                                         image: nil, name: user.name, size: 40,
-                                        placeholderColor: user.placeholderColor)
+                                        placeholderColor: user.placeholderColor
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white, lineWidth: 2)
+                                    )
                                 @unknown default:
                                     ProfilePhotoView(
                                         image: nil, name: user.name, size: 40,
-                                        placeholderColor: user.placeholderColor)
+                                        placeholderColor: user.placeholderColor
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white, lineWidth: 2)
+                                    )
                                 }
                             }
                         } else {
                             ProfilePhotoView(
                                 image: nil, name: user.name, size: 40,
-                                placeholderColor: user.placeholderColor)
+                                placeholderColor: user.placeholderColor
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white, lineWidth: 2)
+                            )
                         }
                     } else {
                         ProgressView()
@@ -139,6 +159,10 @@ struct ThreadRow: View {
                         .frame(width: 40, height: 40)
                         .background(Color.gray.opacity(0.2))
                         .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white, lineWidth: 2)
+                        )
                 }
             }
         }
