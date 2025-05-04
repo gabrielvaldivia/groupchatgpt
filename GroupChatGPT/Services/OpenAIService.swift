@@ -18,7 +18,7 @@ class OpenAIService {
     private let baseURL = "https://api.openai.com/v1/chat/completions"
     private let session: URLSession
     private var conversationHistories: [String: [[String: String]]] = [:]
-    private let maxHistoryLength = 20  // Maximum number of messages to keep in history
+    private let maxHistoryLength = 1000  // Maximum number of messages to keep in history
 
     // Add properties for assistant name configuration
     private var assistantNames: [String: String] = [:]  // chatId: assistantName
@@ -85,10 +85,12 @@ class OpenAIService {
             let instructions = customInstructions[chatId]
 
             var systemMessage = """
-                You are \(assistantName), a helpful assistant in a group chat. Keep your responses concise and conversational.
+                You are \(assistantName), a participant in a group chat. Keep your responses concise and conversational.
                 You should remember and reference information from previous messages in the conversation.
-                Each message includes the sender's name in the format "Name: message".
-                When responding, acknowledge the user by their name if it was mentioned in previous messages.
+                Each user message includes a `name` field indicating the sender.
+                When you respond, do NOT include your own name or any prefix—just reply naturally as the assistant.
+                When a user greets you (e.g., "hey \(assistantName)"), you do not need to always reply with "hey [name]" or mirror their greeting. Respond naturally, as a human would, and vary your greetings or jump straight into the conversation if appropriate.
+                When a user asks a follow-up question, always look back at previous messages in the conversation to find relevant information before asking for clarification. If the information is present, use it in your response.
                 You MUST strictly follow these additional instructions for ALL your responses:
                 """
 
@@ -106,16 +108,28 @@ class OpenAIService {
         return conversationHistories[chatId]!
     }
 
-    func addToHistory(chatId: String, role: String, content: String) {
-        var history = getOrCreateHistory(for: chatId)
-        history.append(["role": role, "content": content])
+    // Helper to sanitize user names for OpenAI's requirements (lowercase, alphanumeric, max 64 chars)
+    private func sanitizedUserName(_ name: String) -> String {
+        let allowed = Set("abcdefghijklmnopqrstuvwxyz0123456789")
+        let lowercased = name.lowercased().replacingOccurrences(of: " ", with: "")
+        let filtered = String(lowercased.filter { allowed.contains($0) })
+        return String(filtered.prefix(64))
+    }
 
+    // Updated addToHistory to support the 'name' field for user messages
+    func addToHistory(chatId: String, role: String, content: String, userName: String? = nil) {
+        var history = getOrCreateHistory(for: chatId)
+        if role == "user", let userName = userName {
+            let sanitized = sanitizedUserName(userName)
+            history.append(["role": role, "content": content, "name": sanitized])
+        } else {
+            history.append(["role": role, "content": content])
+        }
         // Keep history within size limit, but always preserve system message
         if history.count > maxHistoryLength {
             let systemMessage = history[0]
             history = [systemMessage] + history.suffix(maxHistoryLength - 1)
         }
-
         conversationHistories[chatId] = history
     }
 
@@ -160,6 +174,7 @@ class OpenAIService {
         // Add the new user message to history
         addToHistory(chatId: chatId, role: "user", content: message)
 
+        // Always get the full history after adding the new message
         let history = getOrCreateHistory(for: chatId)
 
         let payload: [String: Any] = [
@@ -168,6 +183,9 @@ class OpenAIService {
             "temperature": 0.7,
             "max_tokens": 150,
         ]
+
+        // Debug: Print the payload being sent to OpenAI
+        print("[OpenAIService] Payload: \(payload)")
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)

@@ -243,7 +243,22 @@ class ChatViewModel: ObservableObject {
                 }
 
                 self.messages = newMessages
+                self.syncOpenAIHistory(with: newMessages, chatId: self.thread.threadId)
             }
+    }
+
+    /// Syncs the OpenAIService conversation history with all loaded messages for the thread.
+    private func syncOpenAIHistory(with messages: [Message], chatId: String) {
+        openAIService.clearConversationHistory(for: chatId)
+        for message in messages {
+            if message.senderId == "ai" {
+                openAIService.addToHistory(chatId: chatId, role: "assistant", content: message.text)
+            } else {
+                openAIService.addToHistory(
+                    chatId: chatId, role: "user", content: message.text,
+                    userName: message.senderName)
+            }
+        }
     }
 
     func containsAssistantName(_ text: String, assistantName: String) -> Bool {
