@@ -15,6 +15,7 @@ class ThreadListViewModel: ObservableObject {
     private var listenerRegistration: ListenerRegistration?
 
     init() {
+        self.threads = Self.loadCachedThreads()
         setupThreadsListener()
     }
 
@@ -66,36 +67,43 @@ class ThreadListViewModel: ObservableObject {
                 }
             }
 
-            // Then fetch last messages for each thread
+            // Then fetch last messages for each thread concurrently
             Task { [self] in
                 var updatedThreads = initialThreads
-                for (index, thread) in initialThreads.enumerated() {
-                    if let threadId = thread.id {
-                        do {
-                            let messagesSnapshot = try await self.db.collection("threads")
-                                .document(threadId)
-                                .collection("messages")
-                                .order(by: "timestamp", descending: true)
-                                .limit(to: 1)
-                                .getDocuments()
-
-                            if let lastMessageDoc = messagesSnapshot.documents.first,
-                                let message = try? lastMessageDoc.data(as: Message.self)
-                            {
-                                updatedThreads[index].lastMessage = message.text
-                                updatedThreads[index].lastMessageTimestamp = message.timestamp
+                await withTaskGroup(of: (Int, String?, Date?).self) { group in
+                    for (index, thread) in initialThreads.enumerated() {
+                        if let threadId = thread.id {
+                            group.addTask {
+                                do {
+                                    let messagesSnapshot = try await self.db.collection("threads")
+                                        .document(threadId)
+                                        .collection("messages")
+                                        .order(by: "timestamp", descending: true)
+                                        .limit(to: 1)
+                                        .getDocuments()
+                                    if let lastMessageDoc = messagesSnapshot.documents.first,
+                                        let message = try? lastMessageDoc.data(as: Message.self)
+                                    {
+                                        return (index, message.text, message.timestamp)
+                                    }
+                                } catch {
+                                    print(
+                                        "ThreadListViewModel: Error fetching last message: \(error.localizedDescription)"
+                                    )
+                                }
+                                return (index, nil, nil)
                             }
-                        } catch {
-                            print(
-                                "ThreadListViewModel: Error fetching last message: \(error.localizedDescription)"
-                            )
                         }
                     }
+                    for await (index, lastMessage, lastMessageTimestamp) in group {
+                        updatedThreads[index].lastMessage = lastMessage
+                        updatedThreads[index].lastMessageTimestamp = lastMessageTimestamp
+                    }
                 }
-
                 // Update the threads array with last messages
                 await MainActor.run {
                     self.threads = updatedThreads
+                    Self.saveThreadsToCache(updatedThreads)
                     // Sort threads by unread status and last message timestamp
                     self.threads.sort {
                         let unreadA = self.isThreadUnread($0)
@@ -194,5 +202,28 @@ class ThreadListViewModel: ObservableObject {
             "ThreadListViewModel: Thread \(threadId) unread check - lastMessage: \(lastMessageTimestamp.timeIntervalSince1970), lastRead: \(lastReadTimestamp), isUnread: \(isUnread)"
         )
         return isUnread
+    }
+
+    // MARK: - Thread Caching
+    private static let threadsCacheKey = "cachedThreads"
+
+    private static func loadCachedThreads() -> [Thread] {
+        guard let data = UserDefaults.standard.data(forKey: threadsCacheKey) else { return [] }
+        do {
+            let threads = try JSONDecoder().decode([Thread].self, from: data)
+            return threads
+        } catch {
+            print("ThreadListViewModel: Failed to decode cached threads: \(error)")
+            return []
+        }
+    }
+
+    private static func saveThreadsToCache(_ threads: [Thread]) {
+        do {
+            let data = try JSONEncoder().encode(threads)
+            UserDefaults.standard.set(data, forKey: threadsCacheKey)
+        } catch {
+            print("ThreadListViewModel: Failed to encode threads for cache: \(error)")
+        }
     }
 }
