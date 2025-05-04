@@ -36,27 +36,6 @@ struct ThreadListView: View {
                 }
                 .listStyle(.plain)
             }
-
-            // Floating Action Button
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button {
-                        showingCreateThread = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .background(Color.blue)
-                            .clipShape(Circle())
-                            .shadow(radius: 4, y: 2)
-                    }
-                    .padding()
-                }
-            }
         }
         .navigationTitle("Threads")
         .toolbar {
@@ -65,6 +44,13 @@ struct ThreadListView: View {
                     showingProfile = true
                 } label: {
                     Image(systemName: "person.circle")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingCreateThread = true
+                } label: {
+                    Image(systemName: "plus")
                 }
             }
         }
