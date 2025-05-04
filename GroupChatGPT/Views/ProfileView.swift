@@ -65,11 +65,9 @@ struct ProfileView: View {
                                 .autocorrectionDisabled()
                                 .font(.body)
                                 .padding(.horizontal, 12)
-                                .background(
-                                    colorScheme == .dark
-                                        ? Color(.secondarySystemBackground) : .white)
                         }
                         .frame(height: 44)
+                        .frame(maxWidth: .infinity)
                         .background(
                             colorScheme == .dark ? Color(.secondarySystemBackground) : .white
                         )
