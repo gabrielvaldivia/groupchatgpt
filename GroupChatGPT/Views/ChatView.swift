@@ -67,7 +67,6 @@ struct ChatView: View {
                     // Send button
                     Button(action: {
                         viewModel.sendMessage()
-                        isFocused = false
                     }) {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 24))

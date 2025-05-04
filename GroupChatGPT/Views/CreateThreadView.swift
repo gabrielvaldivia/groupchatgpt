@@ -143,7 +143,8 @@ struct ThreadDetailsView: View {
             onSave: createThread,
             onDeleteThread: {},
             isSaving: viewModel.isCreatingThread,
-            isSaveDisabled: threadName.isEmpty
+            isSaveDisabled: threadName.isEmpty,
+            chatId: UUID().uuidString
         )
         .navigationTitle("Thread Details")
         .navigationBarTitleDisplayMode(.inline)

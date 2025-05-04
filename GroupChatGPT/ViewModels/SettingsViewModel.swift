@@ -11,6 +11,8 @@ class SettingsViewModel: ObservableObject {
     @Published var assistantName: String = ""
     @Published var customInstructions: String = ""
     @Published var isUpdating = false
+    @Published var participants: [User] = []
+    @Published var isLoadingParticipants = false
     private let chatId: String
     private let openAIService = OpenAIService.shared
     private let db = Firestore.firestore()
@@ -27,6 +29,7 @@ class SettingsViewModel: ObservableObject {
         // Fetch initial thread data
         fetchInitialThreadData()
         setupThreadListener()
+        loadParticipants()
     }
 
     private func fetchInitialThreadData() {
@@ -190,6 +193,32 @@ class SettingsViewModel: ObservableObject {
                     chatId: chatId, instructions: trimmedInstructions)
             } catch {
                 print("Error updating custom instructions: \(error)")
+            }
+        }
+    }
+
+    private func loadParticipants() {
+        Task {
+            do {
+                isLoadingParticipants = true
+                defer { isLoadingParticipants = false }
+
+                let threadDoc = try await db.collection("threads").document(chatId).getDocument()
+                guard let thread = try? threadDoc.data(as: Thread.self) else { return }
+
+                var loadedParticipants: [User] = []
+                for userId in thread.participants {
+                    let userDoc = try await db.collection("users").document(userId).getDocument()
+                    if let user = try? userDoc.data(as: User.self) {
+                        loadedParticipants.append(user)
+                    }
+                }
+
+                await MainActor.run {
+                    participants = loadedParticipants
+                }
+            } catch {
+                print("Error loading participants: \(error)")
             }
         }
     }

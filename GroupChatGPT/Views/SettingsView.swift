@@ -29,7 +29,8 @@ struct SettingsView: View {
                     showingDeleteConfirmation = true
                 },
                 isSaving: viewModel.isUpdating,
-                isSaveDisabled: viewModel.threadName.isEmpty
+                isSaveDisabled: viewModel.threadName.isEmpty,
+                chatId: chatId
             )
             .navigationTitle("Chat Settings")
             .navigationBarTitleDisplayMode(.inline)

@@ -11,7 +11,34 @@ struct ThreadSettingsForm: View {
     let onDeleteThread: () -> Void
     let isSaving: Bool
     let isSaveDisabled: Bool
+    @StateObject private var viewModel: SettingsViewModel
     @State private var isDeleting = false
+
+    init(
+        threadName: Binding<String>,
+        apiKey: Binding<String>,
+        assistantName: Binding<String>,
+        customInstructions: Binding<String>,
+        showDangerZone: Bool,
+        onClearAPIKey: @escaping () -> Void,
+        onSave: @escaping () -> Void,
+        onDeleteThread: @escaping () -> Void,
+        isSaving: Bool,
+        isSaveDisabled: Bool,
+        chatId: String
+    ) {
+        self._threadName = threadName
+        self._apiKey = apiKey
+        self._assistantName = assistantName
+        self._customInstructions = customInstructions
+        self.showDangerZone = showDangerZone
+        self.onClearAPIKey = onClearAPIKey
+        self.onSave = onSave
+        self.onDeleteThread = onDeleteThread
+        self.isSaving = isSaving
+        self.isSaveDisabled = isSaveDisabled
+        self._viewModel = StateObject(wrappedValue: SettingsViewModel(chatId: chatId))
+    }
 
     var body: some View {
         Form {
@@ -66,6 +93,50 @@ struct ThreadSettingsForm: View {
                 Text(
                     "Add custom instructions to guide how the AI assistant should behave and respond in this chat."
                 )
+            }
+
+            Section {
+                if viewModel.isLoadingParticipants {
+                    ProgressView("Loading participants...")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(viewModel.participants) { user in
+                            HStack {
+                                if let url = user.profileImageURL {
+                                    AsyncImage(url: url) { image in
+                                        ProfilePhotoView(
+                                            image: image,
+                                            name: user.name,
+                                            size: 40,
+                                            placeholderColor: user.placeholderColor
+                                        )
+                                    } placeholder: {
+                                        ProfilePhotoView(
+                                            image: nil,
+                                            name: user.name,
+                                            size: 40,
+                                            placeholderColor: user.placeholderColor
+                                        )
+                                    }
+                                } else {
+                                    ProfilePhotoView(
+                                        image: nil,
+                                        name: user.name,
+                                        size: 40,
+                                        placeholderColor: user.placeholderColor
+                                    )
+                                }
+                                Text(user.name)
+                                    .font(.body)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text("PARTICIPANTS")
             }
 
             if showDangerZone {
