@@ -122,14 +122,24 @@ class OpenAIService {
     private func isMessageAddressedToChatGPT(_ message: String, chatId: String) -> Bool {
         let lowercasedMessage = message.lowercased()
         let assistantName = getAssistantName(for: chatId).lowercased()
+        return lowercasedMessage.contains(assistantName)
+    }
 
-        return lowercasedMessage.contains("@\(assistantName)")
-            || lowercasedMessage.contains("hey \(assistantName)")
+    private func isFollowUpQuestion(_ message: String, chatId: String) -> Bool {
+        let history = getOrCreateHistory(for: chatId)
+        guard history.count >= 2 else { return false }
+        let lastMessage = history[history.count - 2]
+        let isLastFromAssistant = lastMessage["role"] == "assistant"
+        let isQuestion = message.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("?")
+        return isLastFromAssistant && isQuestion
     }
 
     func generateResponse(to message: String, chatId: String) async throws -> String {
-        // Check if the message is addressed to the assistant
-        guard isMessageAddressedToChatGPT(message, chatId: chatId) else {
+        // Respond if the message contains the assistant's name anywhere, or is a follow-up question
+        guard
+            isMessageAddressedToChatGPT(message, chatId: chatId)
+                || isFollowUpQuestion(message, chatId: chatId)
+        else {
             throw OpenAIError.notAddressed
         }
 
