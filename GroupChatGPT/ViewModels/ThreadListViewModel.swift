@@ -57,9 +57,6 @@ class ThreadListViewModel: ObservableObject {
             let initialThreads = snapshot.documents.compactMap { document -> Thread? in
                 do {
                     var thread = try document.data(as: Thread.self)
-                    if thread.id == nil {
-                        thread.id = document.documentID
-                    }
                     return thread
                 } catch {
                     print(
@@ -135,7 +132,6 @@ class ThreadListViewModel: ObservableObject {
 
         // Manually add the thread to our local array to ensure immediate UI update
         var newThread = thread
-        newThread.id = threadRef.documentID
         threads.insert(newThread, at: 0)  // Add to the beginning since it's newest
     }
 

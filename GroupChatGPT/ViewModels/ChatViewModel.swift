@@ -120,7 +120,6 @@ class ChatViewModel: ObservableObject {
 
                 // Update thread reference with latest data
                 self.thread = updatedThread
-                self.thread.id = snapshot.documentID
 
                 // Update OpenAI configuration if settings changed
                 if let apiKey = updatedThread.apiKey {
@@ -174,9 +173,6 @@ class ChatViewModel: ObservableObject {
                 let newMessages = snapshot.documents.compactMap { document -> Message? in
                     do {
                         var message = try document.data(as: Message.self)
-                        if message.id == nil {
-                            message.id = document.documentID
-                        }
                         print("Decoded message: \(message.senderName): \(message.text)")
                         return message
                     } catch {
