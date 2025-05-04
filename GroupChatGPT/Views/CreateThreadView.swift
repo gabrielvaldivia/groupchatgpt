@@ -65,7 +65,7 @@ struct ParticipantSelectionView: View {
             )
         } else {
             List {
-                ForEach(viewModel.availableUsers) { user in
+                ForEach(viewModel.filteredUsers) { user in
                     Button(action: {
                         viewModel.toggleUser(user)
                     }) {
@@ -74,6 +74,7 @@ struct ParticipantSelectionView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .searchable(text: $viewModel.searchText, prompt: "Search")
             .overlay(alignment: .bottom) {
                 if !viewModel.selectedUsers.isEmpty {
                     Text(

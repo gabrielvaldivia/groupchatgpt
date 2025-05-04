@@ -9,6 +9,7 @@ class CreateThreadViewModel: ObservableObject {
     @Published var error: Error?
     @Published var isLoading = false
     @Published var isCreatingThread = false
+    @Published var searchText: String = ""
 
     enum CreateThreadError: LocalizedError {
         case noAuthenticatedUser
@@ -94,7 +95,7 @@ class CreateThreadViewModel: ObservableObject {
                         )
                         return nil
                     }
-                }.sorted { $0.name < $1.name }
+                }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
                 print("CreateThreadViewModel: Loaded \(self.availableUsers.count) available users")
                 self.availableUsers.forEach { user in
@@ -178,5 +179,10 @@ class CreateThreadViewModel: ObservableObject {
 
     func clearError() {
         error = nil
+    }
+
+    var filteredUsers: [User] {
+        if searchText.isEmpty { return availableUsers }
+        return availableUsers.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 }
