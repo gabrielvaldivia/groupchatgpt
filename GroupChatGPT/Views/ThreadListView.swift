@@ -143,7 +143,7 @@ struct ThreadRow: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .frame(width: 40, height: 40)
-                        .background(Color.gray.opacity(0.2))
+                        .background(Color(.secondarySystemBackground))
                         .clipShape(Circle())
                         .overlay(
                             Circle()
