@@ -65,21 +65,23 @@ struct ParticipantSelectionView: View {
             )
         } else {
             List {
-                Section {
-                    ForEach(viewModel.availableUsers) { user in
-                        Button(action: {
-                            viewModel.toggleUser(user)
-                        }) {
-                            UserSelectionRow(user: user, isSelected: viewModel.isUserSelected(user))
-                        }
-                        .buttonStyle(.plain)
+                ForEach(viewModel.availableUsers) { user in
+                    Button(action: {
+                        viewModel.toggleUser(user)
+                    }) {
+                        UserSelectionRow(user: user, isSelected: viewModel.isUserSelected(user))
                     }
-                } footer: {
-                    if !viewModel.selectedUsers.isEmpty {
-                        Text(
-                            "\(viewModel.selectedUsers.count) participant\(viewModel.selectedUsers.count == 1 ? "" : "s") selected"
-                        )
-                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if !viewModel.selectedUsers.isEmpty {
+                    Text(
+                        "\(viewModel.selectedUsers.count) participant\(viewModel.selectedUsers.count == 1 ? "" : "s") selected"
+                    )
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 8)
                 }
             }
         }
@@ -117,6 +119,7 @@ struct UserSelectionRow: View {
                     .foregroundColor(.blue)
             }
         }
+        .contentShape(Rectangle())
     }
 }
 
