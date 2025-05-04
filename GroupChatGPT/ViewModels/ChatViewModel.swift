@@ -173,15 +173,12 @@ class ChatViewModel: ObservableObject {
                 let newMessages = snapshot.documents.compactMap { document -> Message? in
                     do {
                         var message = try document.data(as: Message.self)
-                        print("Decoded message: \(message.senderName): \(message.text)")
                         return message
                     } catch {
                         print("Error decoding message: \(error.localizedDescription)")
                         return nil
                     }
                 }
-
-                print("Decoded \(newMessages.count) messages")
 
                 // Only schedule notifications for messages that arrive after initial load and when not viewing the thread
                 if let currentUserId = Auth.auth().currentUser?.uid {
@@ -292,16 +289,13 @@ class ChatViewModel: ObservableObject {
 
     func sendMessage() {
         guard !newMessageText.isEmpty, let currentUser = authService.currentUser else {
-            print("DEBUG: Cannot send message - no current user")
             return
         }
 
         guard let userId = Auth.auth().currentUser?.uid else {
-            print("DEBUG: No Firebase Auth user ID")
             return
         }
 
-        print("DEBUG: Sending message as user: \(userId)")
         let messageText = newMessageText.trimmingCharacters(in: .whitespacesAndNewlines)
         newMessageText = ""
 
@@ -312,7 +306,6 @@ class ChatViewModel: ObservableObject {
             text: messageText,
             timestamp: Date()
         )
-        print("DEBUG: Created message with senderId: \(message.senderId)")
 
         // Save to Firestore
         Task {
@@ -348,10 +341,8 @@ class ChatViewModel: ObservableObject {
 
     func isFromCurrentUser(_ message: Message) -> Bool {
         guard let userId = Auth.auth().currentUser?.uid else {
-            print("DEBUG: No Firebase Auth user ID")
             return false
         }
-        print("DEBUG: Comparing message.senderId: \(message.senderId) with userId: \(userId)")
         return message.senderId == userId
     }
 

@@ -1,7 +1,7 @@
 import FirebaseFirestore
 import Foundation
 
-struct Thread: Identifiable, Codable {
+struct Thread: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
     let name: String
     var participants: [String]  // User IDs
@@ -11,6 +11,7 @@ struct Thread: Identifiable, Codable {
     var assistantName: String?  // Add this field for custom assistant name
     var customInstructions: String?  // Custom instructions for the AI assistant
     var lastMessage: String?  // Preview of the last message
+    var lastMessageTimestamp: Date?  // Timestamp of the last message
 
     var threadId: String {
         return id ?? UUID().uuidString
@@ -24,7 +25,8 @@ struct Thread: Identifiable, Codable {
         apiKey: String? = nil,
         assistantName: String? = nil,
         customInstructions: String? = nil,
-        lastMessage: String? = nil
+        lastMessage: String? = nil,
+        lastMessageTimestamp: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -35,5 +37,10 @@ struct Thread: Identifiable, Codable {
         self.assistantName = assistantName
         self.customInstructions = customInstructions
         self.lastMessage = lastMessage
+        self.lastMessageTimestamp = lastMessageTimestamp
+    }
+
+    static func == (lhs: Thread, rhs: Thread) -> Bool {
+        return lhs.id == rhs.id
     }
 }

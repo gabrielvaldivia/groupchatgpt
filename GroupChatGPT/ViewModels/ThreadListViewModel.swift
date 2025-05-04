@@ -7,6 +7,7 @@ class ThreadListViewModel: ObservableObject {
     @Published var threads: [Thread] = []
     @Published var isLoading = false
     @Published var error: Error?
+    @Published var lastReadTimestamps: [String: Double] = [:]
 
     static let shared = ThreadListViewModel()
 
@@ -82,6 +83,7 @@ class ThreadListViewModel: ObservableObject {
                                 let message = try? lastMessageDoc.data(as: Message.self)
                             {
                                 updatedThreads[index].lastMessage = message.text
+                                updatedThreads[index].lastMessageTimestamp = message.timestamp
                             }
                         } catch {
                             print(
@@ -94,14 +96,20 @@ class ThreadListViewModel: ObservableObject {
                 // Update the threads array with last messages
                 await MainActor.run {
                     self.threads = updatedThreads
-                    // Sort threads by creation date
-                    self.threads.sort { $0.createdAt > $1.createdAt }
+                    // Sort threads by unread status and last message timestamp
+                    self.threads.sort {
+                        let unreadA = self.isThreadUnread($0)
+                        let unreadB = self.isThreadUnread($1)
+                        if unreadA != unreadB {
+                            return unreadA
+                        }
+                        // fallback: sort by last message timestamp (descending)
+                        let tsA = $0.lastMessageTimestamp?.timeIntervalSince1970 ?? 0
+                        let tsB = $1.lastMessageTimestamp?.timeIntervalSince1970 ?? 0
+                        return tsA > tsB
+                    }
                 }
             }
-
-            // Set initial threads immediately
-            self.threads = initialThreads
-            self.threads.sort { $0.createdAt > $1.createdAt }
         }
     }
 
@@ -155,5 +163,36 @@ class ThreadListViewModel: ObservableObject {
         await MainActor.run {
             threads.removeAll { $0.id == threadId }
         }
+    }
+
+    // MARK: - Unread Message Tracking
+    func markThreadAsRead(_ thread: Thread) {
+        guard let threadId = thread.id, let lastMessageTimestamp = thread.lastMessageTimestamp
+        else {
+            print("ThreadListViewModel: Cannot mark thread as read - missing id or timestamp")
+            return
+        }
+        let timestamp = lastMessageTimestamp.timeIntervalSince1970
+        print("ThreadListViewModel: Marking thread \(threadId) as read with timestamp \(timestamp)")
+        UserDefaults.standard.set(timestamp, forKey: "lastRead_\(threadId)")
+        lastReadTimestamps[threadId] = timestamp
+        DispatchQueue.main.async {
+            print("ThreadListViewModel: Sending objectWillChange for thread \(threadId)")
+            self.objectWillChange.send()
+        }
+    }
+
+    func isThreadUnread(_ thread: Thread) -> Bool {
+        guard let threadId = thread.id, let lastMessageTimestamp = thread.lastMessageTimestamp
+        else {
+            print("ThreadListViewModel: Cannot check unread status - missing id or timestamp")
+            return false
+        }
+        let lastReadTimestamp = UserDefaults.standard.double(forKey: "lastRead_\(threadId)")
+        let isUnread = lastMessageTimestamp.timeIntervalSince1970 > lastReadTimestamp
+        print(
+            "ThreadListViewModel: Thread \(threadId) unread check - lastMessage: \(lastMessageTimestamp.timeIntervalSince1970), lastRead: \(lastReadTimestamp), isUnread: \(isUnread)"
+        )
+        return isUnread
     }
 }

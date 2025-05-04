@@ -91,6 +91,18 @@ struct ChatView: View {
         }
         .navigationTitle(thread.name)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            print("ChatView: View appeared for thread \(thread.id ?? "unknown")")
+            print(
+                "ChatView: Thread lastMessageTimestamp: \(thread.lastMessageTimestamp?.timeIntervalSince1970 ?? 0)"
+            )
+            NotificationCenter.default.post(name: NSNotification.Name("ViewDidAppear"), object: nil)
+            ThreadListViewModel.shared.markThreadAsRead(thread)
+        }
+        .onDisappear {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ViewDidDisappear"), object: nil)
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -102,13 +114,6 @@ struct ChatView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(chatId: thread.threadId)
-        }
-        .onAppear {
-            NotificationCenter.default.post(name: NSNotification.Name("ViewDidAppear"), object: nil)
-        }
-        .onDisappear {
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ViewDidDisappear"), object: nil)
         }
     }
 }

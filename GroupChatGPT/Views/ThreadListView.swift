@@ -24,6 +24,8 @@ struct ThreadListView: View {
                             ChatView(thread: thread)
                         } label: {
                             ThreadRow(thread: thread)
+                                .environmentObject(viewModel)
+                                .id(viewModel.lastReadTimestamps[thread.id ?? ""] ?? 0)
                         }
                     }
                     .onDelete { indexSet in
@@ -97,9 +99,21 @@ struct ThreadRow: View {
     let thread: Thread
     @State private var participantUsers: [String: User] = [:]
     @EnvironmentObject private var authService: AuthenticationService
+    @EnvironmentObject private var viewModel: ThreadListViewModel
+    @State private var isUnread: Bool = false
+
+    private func updateUnreadState() {
+        isUnread = viewModel.isThreadUnread(thread)
+        print("ThreadRow: Thread \(thread.id ?? "unknown") isUnread: \(isUnread)")
+    }
 
     var body: some View {
         HStack {
+            if isUnread {
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 10, height: 10)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(thread.name)
                     .font(.headline)
@@ -182,6 +196,15 @@ struct ThreadRow: View {
             }
         }
         .padding(.vertical, 8)
+        .onAppear {
+            updateUnreadState()
+        }
+        .onChange(of: thread) { _ in
+            updateUnreadState()
+        }
+        .onChange(of: viewModel.lastReadTimestamps) { _ in
+            updateUnreadState()
+        }
         .task {
             await loadParticipantUsers()
         }
