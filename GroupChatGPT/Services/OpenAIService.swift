@@ -153,7 +153,7 @@ class OpenAIService {
         let history = getOrCreateHistory(for: chatId)
 
         let payload: [String: Any] = [
-            "model": "gpt-3.5-turbo",
+            "model": "gpt-4o",
             "messages": history,
             "temperature": 0.7,
             "max_tokens": 150,
