@@ -101,7 +101,7 @@ struct ThreadRow: View {
                                     )
                                     .overlay(
                                         Circle()
-                                            .stroke(Color.white, lineWidth: 2)
+                                            .stroke(Color(.systemBackground), lineWidth: 2)
                                     )
                                 case .failure(_):
                                     ProfilePhotoView(
@@ -110,7 +110,7 @@ struct ThreadRow: View {
                                     )
                                     .overlay(
                                         Circle()
-                                            .stroke(Color.white, lineWidth: 2)
+                                            .stroke(Color(.systemBackground), lineWidth: 2)
                                     )
                                 @unknown default:
                                     ProfilePhotoView(
@@ -119,7 +119,7 @@ struct ThreadRow: View {
                                     )
                                     .overlay(
                                         Circle()
-                                            .stroke(Color.white, lineWidth: 2)
+                                            .stroke(Color(.systemBackground), lineWidth: 2)
                                     )
                                 }
                             }
@@ -130,7 +130,7 @@ struct ThreadRow: View {
                             )
                             .overlay(
                                 Circle()
-                                    .stroke(Color.white, lineWidth: 2)
+                                    .stroke(Color(.systemBackground), lineWidth: 2)
                             )
                         }
                     } else {
@@ -147,7 +147,7 @@ struct ThreadRow: View {
                         .clipShape(Circle())
                         .overlay(
                             Circle()
-                                .stroke(Color.white, lineWidth: 2)
+                                .stroke(Color(.systemBackground), lineWidth: 2)
                         )
                 }
             }
