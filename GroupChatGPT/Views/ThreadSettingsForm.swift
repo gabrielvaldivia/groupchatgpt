@@ -1,3 +1,5 @@
+import FirebaseAuth
+import FirebaseFirestore
 import SwiftUI
 
 struct ThreadSettingsForm: View {
@@ -13,6 +15,10 @@ struct ThreadSettingsForm: View {
     let isSaveDisabled: Bool
     @StateObject private var viewModel: SettingsViewModel
     @State private var isDeleting = false
+    @State private var showingAddParticipant = false
+    @State private var availableUsers: [User] = []
+    @State private var isLoadingAvailableUsers = false
+    private var currentUserId: String? { Auth.auth().currentUser?.uid }
 
     init(
         threadName: Binding<String>,
@@ -50,93 +56,12 @@ struct ThreadSettingsForm: View {
             }
 
             Section {
-                TextField("Enter API Key", text: $apiKey)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .textCase(.none)
-                    .monospaced()
-                    .keyboardType(.asciiCapable)
-                    .submitLabel(.done)
-                    .textContentType(.none)
-                    .disableAutocorrection(true)
-
-                if !apiKey.isEmpty {
-                    Button(role: .destructive, action: onClearAPIKey) {
-                        Text("Clear API Key")
-                    }
+                NavigationLink(destination: ParticipantsView(viewModel: viewModel)) {
+                    Text("Participants")
                 }
-            } header: {
-                Text("OPENAI API KEY")
-            } footer: {
-                Text("This API key will be shared with everyone in this chat. You can ")
-                    + Text("[get an API key](https://platform.openai.com/api-keys)")
-                    .foregroundColor(.blue) + Text(" from OpenAI.")
-            }
-
-            Section {
-                TextField("Assistant Name", text: $assistantName)
-                    .textInputAutocapitalization(.words)
-            } header: {
-                Text("ASSISTANT NAME")
-            } footer: {
-                Text(
-                    "This is the name you'll use to address the AI assistant in chat (e.g. '@Alice' or 'Hey Alice')"
-                )
-            }
-
-            Section {
-                TextEditor(text: $customInstructions)
-                    .frame(minHeight: 100)
-            } header: {
-                Text("CUSTOM INSTRUCTIONS")
-            } footer: {
-                Text(
-                    "Add custom instructions to guide how the AI assistant should behave and respond in this chat."
-                )
-            }
-
-            Section {
-                if viewModel.isLoadingParticipants {
-                    ProgressView("Loading participants...")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                } else {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(viewModel.participants) { user in
-                            HStack {
-                                if let url = user.profileImageURL {
-                                    AsyncImage(url: url) { image in
-                                        ProfilePhotoView(
-                                            image: image,
-                                            name: user.name,
-                                            size: 40,
-                                            placeholderColor: user.placeholderColor
-                                        )
-                                    } placeholder: {
-                                        ProfilePhotoView(
-                                            image: nil,
-                                            name: user.name,
-                                            size: 40,
-                                            placeholderColor: user.placeholderColor
-                                        )
-                                    }
-                                } else {
-                                    ProfilePhotoView(
-                                        image: nil,
-                                        name: user.name,
-                                        size: 40,
-                                        placeholderColor: user.placeholderColor
-                                    )
-                                }
-                                Text(user.name)
-                                    .font(.body)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
+                NavigationLink(destination: AssistantSettingsView(viewModel: viewModel)) {
+                    Text("Assistant")
                 }
-            } header: {
-                Text("PARTICIPANTS")
             }
 
             if showDangerZone {
@@ -179,6 +104,21 @@ struct ThreadSettingsForm: View {
                     Button("Save", action: onSave)
                         .disabled(isSaveDisabled)
                 }
+            }
+        }
+    }
+
+    private func loadAvailableUsers() {
+        guard let currentUserId = currentUserId else { return }
+        isLoadingAvailableUsers = true
+        let db = Firestore.firestore()
+        db.collection("users").getDocuments { snapshot, error in
+            isLoadingAvailableUsers = false
+            guard let documents = snapshot?.documents else { return }
+            let allUsers = documents.compactMap { try? $0.data(as: User.self) }
+            let participantIds = Set(viewModel.participants.map { $0.userId })
+            availableUsers = allUsers.filter { user in
+                user.userId != currentUserId && !participantIds.contains(user.userId)
             }
         }
     }

@@ -4,7 +4,7 @@ import Foundation
 struct Thread: Identifiable, Codable {
     @DocumentID var id: String?
     let name: String
-    let participants: [String]  // User IDs
+    var participants: [String]  // User IDs
     let createdAt: Date
     let createdBy: String  // User ID
     var apiKey: String?

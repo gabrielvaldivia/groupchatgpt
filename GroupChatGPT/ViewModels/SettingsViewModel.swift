@@ -222,4 +222,36 @@ class SettingsViewModel: ObservableObject {
             }
         }
     }
+
+    func addParticipant(_ user: User) {
+        Task {
+            do {
+                let threadRef = db.collection("threads").document(chatId)
+                let threadDoc = try await threadRef.getDocument()
+                guard var thread = try? threadDoc.data(as: Thread.self) else { return }
+                if !thread.participants.contains(user.userId) {
+                    thread.participants.append(user.userId)
+                    try threadRef.setData(from: thread, merge: true)
+                    await MainActor.run { self.loadParticipants() }
+                }
+            } catch {
+                print("Error adding participant: \(error)")
+            }
+        }
+    }
+
+    func removeParticipant(_ user: User) {
+        Task {
+            do {
+                let threadRef = db.collection("threads").document(chatId)
+                let threadDoc = try await threadRef.getDocument()
+                guard var thread = try? threadDoc.data(as: Thread.self) else { return }
+                thread.participants.removeAll { $0 == user.userId }
+                try threadRef.setData(from: thread, merge: true)
+                await MainActor.run { self.loadParticipants() }
+            } catch {
+                print("Error removing participant: \(error)")
+            }
+        }
+    }
 }
