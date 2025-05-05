@@ -64,26 +64,21 @@ struct ParticipantSelectionView: View {
             )
         } else {
             List {
-                ForEach(viewModel.filteredUsers) { user in
-                    Button(action: {
-                        viewModel.toggleUser(user)
-                    }) {
-                        UserSelectionRow(user: user, isSelected: viewModel.isUserSelected(user))
+                Section {
+                    ForEach(viewModel.filteredUsers) { user in
+                        Button(action: {
+                            viewModel.toggleUser(user)
+                        }) {
+                            UserSelectionRow(user: user, isSelected: viewModel.isUserSelected(user))
+                        }
+                        .buttonStyle(.plain)
+                        .listRowSeparator(.visible)
                     }
-                    .buttonStyle(.plain)
                 }
+                .listSectionSeparator(.hidden, edges: .top)
             }
+            .listStyle(.plain)
             .searchable(text: $viewModel.searchText, prompt: "Search")
-            .overlay(alignment: .bottom) {
-                if !viewModel.selectedUsers.isEmpty {
-                    Text(
-                        "\(viewModel.selectedUsers.count) participant\(viewModel.selectedUsers.count == 1 ? "" : "s") selected"
-                    )
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .padding(.bottom, 8)
-                }
-            }
         }
     }
 }
@@ -97,16 +92,16 @@ struct UserSelectionRow: View {
             if let url = user.profileImageURL {
                 AsyncImage(url: url) { image in
                     ProfilePhotoView(
-                        image: image, name: user.name, size: 40,
+                        image: image, name: user.name, size: 32,
                         placeholderColor: user.placeholderColor)
                 } placeholder: {
                     ProfilePhotoView(
-                        image: nil, name: user.name, size: 40,
+                        image: nil, name: user.name, size: 32,
                         placeholderColor: user.placeholderColor)
                 }
             } else {
                 ProfilePhotoView(
-                    image: nil, name: user.name, size: 40, placeholderColor: user.placeholderColor)
+                    image: nil, name: user.name, size: 32, placeholderColor: user.placeholderColor)
             }
 
             Text(user.name)
@@ -120,6 +115,7 @@ struct UserSelectionRow: View {
             }
         }
         .contentShape(Rectangle())
+        .padding(.vertical, 4)
     }
 }
 
