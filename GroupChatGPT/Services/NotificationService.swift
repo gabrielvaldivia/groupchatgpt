@@ -77,11 +77,11 @@ class NotificationService: NSObject, ObservableObject {
         ]
 
         // Create a trigger that delivers the notification immediately
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1.0, repeats: false)
 
         // Create the request with a unique identifier
         let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
+            identifier: "\(threadId)_\(UUID().uuidString)",
             content: content,
             trigger: trigger
         )
