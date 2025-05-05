@@ -176,13 +176,8 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
 
         print("[AuthenticationService] Processing Apple ID credentials")
         let userId = credentials.user
-        let fullName = credentials.fullName
-        let givenName = fullName?.givenName ?? ""
-        let familyName = fullName?.familyName ?? ""
-        let displayName = [givenName, familyName].filter { !$0.isEmpty }.joined(separator: " ")
-        let nameToUse = displayName.isEmpty ? "New User" : displayName
+        let firstName = credentials.fullName?.givenName ?? "New User"
         let email = credentials.email
-        let color = User.generatePlaceholderColor(for: nameToUse)
 
         // Create Firebase credential
         guard let identityToken = credentials.identityToken,
@@ -268,10 +263,8 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
                     print("[AuthenticationService] Creating new user with ID: \(userId)")
                     let user = User(
                         id: userId,
-                        name: nameToUse,
-                        email: email,
-                        profileImageURL: nil,
-                        placeholderColor: color
+                        name: firstName,
+                        email: email
                     )
 
                     print("[AuthenticationService] Attempting to save user to Firestore")
