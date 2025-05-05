@@ -9,13 +9,32 @@ struct AssistantSettingsView: View {
     var body: some View {
         Form {
             Section {
-                SecureField("OpenAI API Key", text: $viewModel.apiKey)
-                Button("Clear API Key") {
-                    viewModel.apiKey = ""
+                ZStack {
+                    SecureField("OpenAI API Key", text: $viewModel.apiKey)
+                        .padding(.trailing, 32)
+                    if !viewModel.apiKey.isEmpty {
+                        HStack {
+                            Spacer()
+                            Button(action: { viewModel.apiKey = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                            // .padding(.trailing, 8)
+                        }
+                    }
                 }
-                .foregroundColor(.red)
             } header: {
                 Text("API Key")
+            } footer: {
+                HStack(spacing: 4) {
+                    Text("Get your OPEN AI key")
+                        .font(.footnote)
+                        .fontWeight(.regular)
+                    Link("here", destination: URL(string: "https://platform.openai.com/api-keys")!)
+                        .font(.footnote)
+                        .fontWeight(.regular)
+                        .foregroundColor(.blue)
+                }
             }
 
             Section {

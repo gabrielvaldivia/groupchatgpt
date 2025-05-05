@@ -11,7 +11,7 @@ struct CreateThreadView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ParticipantSelectionView(viewModel: viewModel)
-                .navigationTitle("Add Participants")
+                .navigationTitle("Select Participants")
                 .navigationDestination(for: String.self) { _ in
                     ThreadDetailsView(
                         threadName: $threadName,
@@ -31,7 +31,6 @@ struct CreateThreadView: View {
                         Button("Next") {
                             path.append("details")
                         }
-                        .disabled(viewModel.selectedUsers.isEmpty)
                     }
                 }
                 .navigationBarTitleDisplayMode(.inline)
@@ -75,7 +74,6 @@ struct ParticipantSelectionView: View {
                 }
             }
             .searchable(text: $viewModel.searchText, prompt: "Search")
-            .listStyle(.plain)
             .overlay(alignment: .bottom) {
                 if !viewModel.selectedUsers.isEmpty {
                     Text(
@@ -141,6 +139,8 @@ struct ThreadDetailsView: View {
             assistantName: $assistantName,
             customInstructions: $customInstructions,
             showDangerZone: false,
+            showParticipantsAndAssistant: false,
+            autoFocusThreadName: true,
             onClearAPIKey: { apiKey = "" },
             onSave: createThread,
             onDeleteThread: {},

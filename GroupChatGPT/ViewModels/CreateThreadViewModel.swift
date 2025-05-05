@@ -123,10 +123,6 @@ class CreateThreadViewModel: ObservableObject {
             throw CreateThreadError.invalidThreadName
         }
 
-        guard !selectedUsers.isEmpty else {
-            throw CreateThreadError.noParticipantsSelected
-        }
-
         if let apiKey = apiKey {
             // Basic OpenAI API key format validation (sk-...)
             guard apiKey.trimmingCharacters(in: .whitespacesAndNewlines).starts(with: "sk-") else {

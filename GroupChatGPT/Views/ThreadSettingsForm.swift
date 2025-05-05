@@ -8,6 +8,8 @@ struct ThreadSettingsForm: View {
     @Binding var assistantName: String
     @Binding var customInstructions: String
     let showDangerZone: Bool
+    let showParticipantsAndAssistant: Bool
+    let autoFocusThreadName: Bool
     let onClearAPIKey: () -> Void
     let onSave: () -> Void
     let onDeleteThread: () -> Void
@@ -18,6 +20,7 @@ struct ThreadSettingsForm: View {
     @State private var showingAddParticipant = false
     @State private var availableUsers: [User] = []
     @State private var isLoadingAvailableUsers = false
+    @FocusState private var isThreadNameFocused: Bool
     private var currentUserId: String? { Auth.auth().currentUser?.uid }
 
     init(
@@ -26,6 +29,8 @@ struct ThreadSettingsForm: View {
         assistantName: Binding<String>,
         customInstructions: Binding<String>,
         showDangerZone: Bool,
+        showParticipantsAndAssistant: Bool = true,
+        autoFocusThreadName: Bool = false,
         onClearAPIKey: @escaping () -> Void,
         onSave: @escaping () -> Void,
         onDeleteThread: @escaping () -> Void,
@@ -38,6 +43,8 @@ struct ThreadSettingsForm: View {
         self._assistantName = assistantName
         self._customInstructions = customInstructions
         self.showDangerZone = showDangerZone
+        self.showParticipantsAndAssistant = showParticipantsAndAssistant
+        self.autoFocusThreadName = autoFocusThreadName
         self.onClearAPIKey = onClearAPIKey
         self.onSave = onSave
         self.onDeleteThread = onDeleteThread
@@ -51,16 +58,19 @@ struct ThreadSettingsForm: View {
             Section {
                 TextField("Thread Name", text: $threadName)
                     .textInputAutocapitalization(.words)
+                    .focused($isThreadNameFocused)
             } header: {
                 Text("THREAD NAME")
             }
 
-            Section {
-                NavigationLink(destination: ParticipantsView(viewModel: viewModel)) {
-                    Text("Participants")
-                }
-                NavigationLink(destination: AssistantSettingsView(viewModel: viewModel)) {
-                    Text("Assistant")
+            if showParticipantsAndAssistant {
+                Section {
+                    NavigationLink(destination: ParticipantsView(viewModel: viewModel)) {
+                        Text("Participants")
+                    }
+                    NavigationLink(destination: AssistantSettingsView(viewModel: viewModel)) {
+                        Text("Assistant")
+                    }
                 }
             }
 
@@ -103,6 +113,13 @@ struct ThreadSettingsForm: View {
                 } else {
                     Button("Save", action: onSave)
                         .disabled(isSaveDisabled)
+                }
+            }
+        }
+        .onAppear {
+            if autoFocusThreadName {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isThreadNameFocused = true
                 }
             }
         }
