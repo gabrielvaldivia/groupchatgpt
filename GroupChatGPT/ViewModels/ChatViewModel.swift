@@ -6,6 +6,7 @@ import Foundation
 class ChatViewModel: ObservableObject {
     @Published var messages: [Message] = []
     @Published var newMessageText = ""
+    @Published var participantUsers: [String: User] = [:]
     private var hasInitialLoad = false
     private var isAppActive = true
     private var isViewingThread = true
@@ -61,6 +62,9 @@ class ChatViewModel: ObservableObject {
 
         setupThreadListener()
         setupMessagesListener()
+        Task {
+            await fetchParticipantUsers()
+        }
     }
 
     deinit {
@@ -366,6 +370,23 @@ class ChatViewModel: ObservableObject {
             print("Successfully cleared all messages")
         } catch {
             print("Error clearing messages: \(error)")
+        }
+    }
+
+    private func fetchParticipantUsers() async {
+        for userId in thread.participants {
+            if participantUsers[userId] == nil {
+                do {
+                    let document = try await db.collection("users").document(userId).getDocument()
+                    if let user = try? document.data(as: User.self) {
+                        await MainActor.run {
+                            participantUsers[userId] = user
+                        }
+                    }
+                } catch {
+                    print("Error loading user \(userId): \(error.localizedDescription)")
+                }
+            }
         }
     }
 }

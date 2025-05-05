@@ -29,12 +29,18 @@ struct ChatView: View {
                                 ? 0
                                 : (viewModel.messages[index - 1].senderId == message.senderId
                                     ? 4 : 12)
+                            let user = viewModel.participantUsers[message.senderId]
+                            let isLastInGroup =
+                                index == viewModel.messages.count - 1
+                                || viewModel.messages[index + 1].senderId != message.senderId
                             VStack(spacing: 0) {
                                 Spacer().frame(height: CGFloat(topSpacing))
                                 MessageBubble(
                                     message: message,
                                     isFromCurrentUser: viewModel.isFromCurrentUser(message),
-                                    showSenderName: showName
+                                    showSenderName: showName,
+                                    user: user,
+                                    showProfilePhoto: isLastInGroup
                                 )
                                 .id(message.messageId)
                             }
@@ -122,7 +128,10 @@ struct MessageBubble: View {
     let message: Message
     let isFromCurrentUser: Bool
     let showSenderName: Bool
+    let user: User?
+    let showProfilePhoto: Bool
     @State private var messageHeight: CGFloat = 0
+    @EnvironmentObject private var authService: AuthenticationService
 
     private func processMessageText(_ text: String) -> String {
         return text.replacingOccurrences(
@@ -130,13 +139,70 @@ struct MessageBubble: View {
     }
 
     var body: some View {
-        HStack {
+        HStack(alignment: .bottom, spacing: 4) {
             if isFromCurrentUser {
                 Spacer()
             }
 
+            if !isFromCurrentUser {
+                VStack {
+                    Spacer()
+                    if showProfilePhoto {
+                        if let url = user?.profileImageURL {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProfilePhotoView(
+                                        image: nil,
+                                        name: message.senderName,
+                                        size: 32,
+                                        placeholderColor: user?.placeholderColor
+                                            ?? authService.getUserColor(for: message.senderId)
+                                    )
+                                case .success(let image):
+                                    ProfilePhotoView(
+                                        image: image,
+                                        name: message.senderName,
+                                        size: 32,
+                                        placeholderColor: user?.placeholderColor
+                                            ?? authService.getUserColor(for: message.senderId)
+                                    )
+                                case .failure(_):
+                                    ProfilePhotoView(
+                                        image: nil,
+                                        name: message.senderName,
+                                        size: 32,
+                                        placeholderColor: user?.placeholderColor
+                                            ?? authService.getUserColor(for: message.senderId)
+                                    )
+                                @unknown default:
+                                    ProfilePhotoView(
+                                        image: nil,
+                                        name: message.senderName,
+                                        size: 32,
+                                        placeholderColor: user?.placeholderColor
+                                            ?? authService.getUserColor(for: message.senderId)
+                                    )
+                                }
+                            }
+                        } else {
+                            ProfilePhotoView(
+                                image: nil,
+                                name: message.senderName,
+                                size: 32,
+                                placeholderColor: user?.placeholderColor
+                                    ?? authService.getUserColor(for: message.senderId)
+                            )
+                        }
+                    } else {
+                        Color.clear.frame(width: 32, height: 32)
+                    }
+                }
+                .frame(width: 32)
+            }
+
             VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 4) {
-                if showSenderName {
+                if showSenderName && !isFromCurrentUser {
                     Text(message.senderName)
                         .font(.caption)
                         .foregroundColor(.gray)
@@ -156,6 +222,9 @@ struct MessageBubble: View {
                         }
                     )
                     .foregroundColor(isFromCurrentUser ? .white : .primary)
+                    .frame(
+                        maxWidth: isFromCurrentUser ? 280 : .infinity,
+                        alignment: isFromCurrentUser ? .trailing : .leading)
             }
             .padding(.horizontal, 4)
 

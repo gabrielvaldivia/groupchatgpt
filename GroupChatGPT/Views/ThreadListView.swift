@@ -22,6 +22,7 @@ struct ThreadListView: View {
                     ForEach(viewModel.threads) { thread in
                         NavigationLink {
                             ChatView(thread: thread)
+                                .environmentObject(authService)
                         } label: {
                             ThreadRow(thread: thread)
                                 .environmentObject(viewModel)

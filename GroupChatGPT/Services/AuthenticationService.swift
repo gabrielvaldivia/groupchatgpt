@@ -25,6 +25,19 @@ public class AuthenticationService: NSObject, ObservableObject {
         setupUserListener()
     }
 
+    func getUserColor(for userId: String) -> String {
+        let colors: [String] = [
+            "red", "orange", "yellow", "green", "blue", "purple", "pink", "indigo",
+        ]
+
+        var hash = 0
+        for char in userId.utf8 {
+            hash = Int(char) &+ (hash << 6) &+ (hash << 16) &- hash
+        }
+
+        return colors[abs(hash) % colors.count]
+    }
+
     private func setupUserListener() {
         authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self = self else { return }
@@ -176,8 +189,13 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
 
         print("[AuthenticationService] Processing Apple ID credentials")
         let userId = credentials.user
-        let firstName = credentials.fullName?.givenName ?? "New User"
+        let fullName = credentials.fullName
+        let givenName = fullName?.givenName ?? ""
+        let familyName = fullName?.familyName ?? ""
+        let displayName = [givenName, familyName].filter { !$0.isEmpty }.joined(separator: " ")
+        let nameToUse = displayName.isEmpty ? "New User" : displayName
         let email = credentials.email
+        let color = getUserColor(for: userId)
 
         // Create Firebase credential
         guard let identityToken = credentials.identityToken,
@@ -263,8 +281,9 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
                     print("[AuthenticationService] Creating new user with ID: \(userId)")
                     let user = User(
                         id: userId,
-                        name: firstName,
-                        email: email
+                        name: nameToUse,
+                        email: email,
+                        profileImageURL: nil
                     )
 
                     print("[AuthenticationService] Attempting to save user to Firestore")
