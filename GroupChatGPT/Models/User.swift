@@ -33,7 +33,7 @@ public struct User: Identifiable, Codable, Hashable {
         self.placeholderColor = Self.generatePlaceholderColor(for: name)
     }
 
-    private static func generatePlaceholderColor(for name: String) -> String {
+    public static func generatePlaceholderColor(for name: String) -> String {
         let colors: [String] = [
             "red", "orange", "yellow", "green", "blue", "purple", "pink", "indigo",
         ]

@@ -17,7 +17,7 @@ class ChatViewModel: ObservableObject {
     private var threadListener: ListenerRegistration?
     private let openAIService = OpenAIService.shared
     private let notificationService = NotificationService.shared
-    private var thread: Thread
+    var thread: Thread
     private let authService: AuthenticationService
 
     init(thread: Thread) {

@@ -1,6 +1,7 @@
 import FirebaseAuth
 import FirebaseFirestore
 import Foundation
+import PhotosUI
 import SwiftUI
 
 @MainActor
@@ -13,6 +14,12 @@ class SettingsViewModel: ObservableObject {
     @Published var isUpdating = false
     @Published var participants: [User] = []
     @Published var isLoadingParticipants = false
+    @Published var assistantProfileImage: Image?
+    @Published var assistantProfileImageData: Data?
+    @Published var assistantProfileImageURL: String?
+    @Published var assistantPhotoPickerItem: PhotosPickerItem? {
+        didSet { Task { await loadAssistantPhoto() } }
+    }
     private let chatId: String
     private let openAIService = OpenAIService.shared
     private let db = Firestore.firestore()
@@ -46,6 +53,27 @@ class SettingsViewModel: ObservableObject {
                 self.apiKey = thread.apiKey ?? ""
                 self.assistantName = thread.assistantName ?? "ChatGPT"
                 self.customInstructions = thread.customInstructions ?? ""
+                self.assistantProfileImageURL = thread.assistantProfileImageURL
+                if let urlString = thread.assistantProfileImageURL,
+                    let url = URL(string: urlString), !urlString.isEmpty
+                {
+                    if urlString.hasPrefix("data:") {
+                        if let image = self.loadBase64Image(from: urlString) {
+                            self.assistantProfileImage = image
+                        }
+                    } else {
+                        do {
+                            let (data, _) = try await URLSession.shared.data(from: url)
+                            if let uiImage = UIImage(data: data) {
+                                self.assistantProfileImage = Image(uiImage: uiImage)
+                            }
+                        } catch {
+                            print("Error loading assistant profile image: \(error)")
+                        }
+                    }
+                } else {
+                    self.assistantProfileImage = nil
+                }
             }
         }
     }
@@ -252,6 +280,76 @@ class SettingsViewModel: ObservableObject {
             } catch {
                 print("Error removing participant: \(error)")
             }
+        }
+    }
+
+    func updateAssistantProfileImage() async {
+        guard let imageData = assistantProfileImageData else { return }
+        let base64String = imageData.base64EncodedString()
+        let imageURLString = "data:image/jpeg;base64,\(base64String)"
+        do {
+            try await db.collection("threads").document(chatId).updateData([
+                "assistantProfileImageURL": imageURLString
+            ])
+            self.assistantProfileImageURL = imageURLString
+        } catch {
+            print("Error updating assistant profile image: \(error)")
+        }
+    }
+
+    private func loadBase64Image(from dataURL: String) -> Image? {
+        guard let base64String = dataURL.components(separatedBy: ",").last,
+            let imageData = Data(base64Encoded: base64String),
+            let uiImage = UIImage(data: imageData)
+        else {
+            return nil
+        }
+        return Image(uiImage: uiImage)
+    }
+
+    private func loadAssistantPhoto() async {
+        guard let item = assistantPhotoPickerItem else { return }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else { return }
+            guard let uiImage = UIImage(data: data) else { return }
+            let resizedImage = await normalizeAndResizeImage(uiImage)
+            guard let imageData = resizedImage.jpegData(compressionQuality: 0.8) else { return }
+            guard imageData.count < 900 * 1024 else {
+                return
+            }
+            await MainActor.run {
+                self.assistantProfileImageData = imageData
+                self.assistantProfileImage = Image(uiImage: resizedImage)
+            }
+            await updateAssistantProfileImage()
+        } catch {
+            print("Failed to load assistant photo: \(error)")
+        }
+    }
+
+    private func normalizeAndResizeImage(_ uiImage: UIImage) async -> UIImage {
+        var normalizedImage = uiImage
+        if uiImage.imageOrientation != .up {
+            UIGraphicsBeginImageContextWithOptions(uiImage.size, false, uiImage.scale)
+            uiImage.draw(in: CGRect(origin: .zero, size: uiImage.size))
+            if let newImage = UIGraphicsGetImageFromCurrentImageContext() {
+                UIGraphicsEndImageContext()
+                normalizedImage = newImage
+            } else {
+                UIGraphicsEndImageContext()
+            }
+        }
+        let sideLength = min(normalizedImage.size.width, normalizedImage.size.height)
+        let xOffset = (normalizedImage.size.width - sideLength) / 2
+        let yOffset = (normalizedImage.size.height - sideLength) / 2
+        let cropRect = CGRect(x: xOffset, y: yOffset, width: sideLength, height: sideLength)
+        guard let cgImage = normalizedImage.cgImage?.cropping(to: cropRect) else {
+            return normalizedImage
+        }
+        let squareImage = UIImage(cgImage: cgImage)
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 400))
+        return renderer.image { context in
+            squareImage.draw(in: CGRect(origin: .zero, size: CGSize(width: 400, height: 400)))
         }
     }
 }

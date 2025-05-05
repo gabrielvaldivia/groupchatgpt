@@ -12,6 +12,7 @@ struct Thread: Identifiable, Codable, Equatable {
     var customInstructions: String?  // Custom instructions for the AI assistant
     var lastMessage: String?  // Preview of the last message
     var lastMessageTimestamp: Date?  // Timestamp of the last message
+    var assistantProfileImageURL: String?  // Assistant profile photo URL or base64 string
 
     var threadId: String {
         return id ?? UUID().uuidString
@@ -26,7 +27,8 @@ struct Thread: Identifiable, Codable, Equatable {
         assistantName: String? = nil,
         customInstructions: String? = nil,
         lastMessage: String? = nil,
-        lastMessageTimestamp: Date? = nil
+        lastMessageTimestamp: Date? = nil,
+        assistantProfileImageURL: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -38,6 +40,7 @@ struct Thread: Identifiable, Codable, Equatable {
         self.customInstructions = customInstructions
         self.lastMessage = lastMessage
         self.lastMessageTimestamp = lastMessageTimestamp
+        self.assistantProfileImageURL = assistantProfileImageURL
     }
 
     static func == (lhs: Thread, rhs: Thread) -> Bool {

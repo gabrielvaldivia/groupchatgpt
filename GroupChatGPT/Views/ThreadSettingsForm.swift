@@ -22,6 +22,7 @@ struct ThreadSettingsForm: View {
     @State private var isLoadingAvailableUsers = false
     @FocusState private var isThreadNameFocused: Bool
     private var currentUserId: String? { Auth.auth().currentUser?.uid }
+    @State private var showingAssistantSettings = false
 
     init(
         threadName: Binding<String>,
@@ -63,13 +64,53 @@ struct ThreadSettingsForm: View {
                 Text("THREAD NAME")
             }
 
+            Section {
+                ZStack {
+                    SecureField("OpenAI API Key", text: $apiKey)
+                        .padding(.trailing, 32)
+                    if !apiKey.isEmpty {
+                        HStack {
+                            Spacer()
+                            Button(action: { apiKey = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+                if !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button {
+                        showingAssistantSettings = true
+                    } label: {
+                        Text("Customize Assistant")
+                    }
+                    .sheet(isPresented: $showingAssistantSettings) {
+                        AssistantSettingsView(viewModel: viewModel)
+                    }
+                }
+            } header: {
+                Text("ASSISTANT")
+            } footer: {
+                if apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    HStack(spacing: 4) {
+                        Text("Get your OPEN AI key")
+                            .font(.footnote)
+                            .fontWeight(.regular)
+                        Link(
+                            "here",
+                            destination: URL(string: "https://platform.openai.com/api-keys")!
+                        )
+                        .font(.footnote)
+                        .fontWeight(.regular)
+                        .foregroundColor(.blue)
+                    }
+                }
+            }
+
             if showParticipantsAndAssistant {
                 Section {
                     NavigationLink(destination: ParticipantsView(viewModel: viewModel)) {
                         Text("Participants")
-                    }
-                    NavigationLink(destination: AssistantSettingsView(viewModel: viewModel)) {
-                        Text("Assistant")
                     }
                 }
             }
